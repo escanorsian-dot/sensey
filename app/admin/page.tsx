@@ -154,7 +154,7 @@ export default function AdminPage() {
                     id={`file-${i}`}
                   />
                   <label
-                    htmlFor={``file-${i}``}
+                    htmlFor={`file-${i}`}
                     className={`flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all
                       ${imageFiles[i] ? 'border-green-500 bg-green-50' : 'border-slate-300 hover:border-blue-500 hover:bg-slate-50'}`}
                   >
