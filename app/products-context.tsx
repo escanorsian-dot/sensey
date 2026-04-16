@@ -1,9 +1,31 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useAuth } from './auth-context';
+import { db, isFirebaseConfigured } from '../lib/firebase';
 
 export interface Product {
   id: string;
+  name: string;
+  price: number;
+  image: string;
+  description: string;
+  vendor?: string;
+  createdBy?: string;
+  createdAt?: string;
+}
+
+export interface ProductDraft {
   name: string;
   price: number;
   image: string;
@@ -13,8 +35,11 @@ export interface Product {
 
 interface ProductsContextType {
   products: Product[];
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  removeProduct: (id: string) => void;
+  addProduct: (product: ProductDraft) => Promise<void>;
+  removeProduct: (id: string) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+  isFirebaseEnabled: boolean;
 }
 
 const ProductsContext = createContext<ProductsContextType | null>(null);
@@ -43,42 +68,156 @@ const initialProducts: Product[] = [
   },
 ];
 
-export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(() => {
-    if (typeof window === 'undefined') {
+const PRODUCTS_STORAGE_KEY = 'products';
+
+const normalizeProduct = (product: Partial<Product>, fallbackId: string): Product => ({
+  id: typeof product.id === 'string' ? product.id : fallbackId,
+  name: typeof product.name === 'string' ? product.name : 'Untitled product',
+  price: Number.isFinite(Number(product.price)) ? Number(product.price) : 0,
+  image:
+    typeof product.image === 'string' && product.image.length > 0
+      ? product.image
+      : 'https://picsum.photos/300/200?grayscale',
+  description:
+    typeof product.description === 'string' ? product.description : 'No description yet.',
+  vendor: typeof product.vendor === 'string' && product.vendor.length > 0 ? product.vendor : undefined,
+  createdBy:
+    typeof product.createdBy === 'string' && product.createdBy.length > 0
+      ? product.createdBy
+      : undefined,
+  createdAt:
+    typeof product.createdAt === 'string' && product.createdAt.length > 0
+      ? product.createdAt
+      : undefined,
+});
+
+const loadLocalProducts = (): Product[] => {
+  if (typeof window === 'undefined') {
+    return initialProducts;
+  }
+
+  try {
+    const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    if (!stored) {
       return initialProducts;
+    }
+
+    const parsed = JSON.parse(stored) as Partial<Product>[];
+    return parsed.map((product, index) => normalizeProduct(product, `${index + 1}`));
+  } catch {
+    return initialProducts;
+  }
+};
+
+export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [products, setProducts] = useState<Product[]>(loadLocalProducts);
+  const [isLoading, setIsLoading] = useState(Boolean(isFirebaseConfigured));
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !db) {
+      return;
+    }
+
+    const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(
+      productsQuery,
+      (snapshot) => {
+        setProducts(
+          snapshot.docs.map((snapshotDoc) => {
+            const data = snapshotDoc.data() as Partial<Product> & {
+              createdAt?: { toDate?: () => Date };
+            };
+
+            return normalizeProduct(
+              {
+                ...data,
+                id: snapshotDoc.id,
+                createdAt: data.createdAt?.toDate?.()?.toISOString(),
+              },
+              snapshotDoc.id,
+            );
+          }),
+        );
+        setIsLoading(false);
+        setError(null);
+      },
+      () => {
+        setError('We could not sync products from Firebase.');
+        setIsLoading(false);
+      },
+    );
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (isFirebaseConfigured || typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+  }, [products]);
+
+  const addProduct = async (newProduct: ProductDraft) => {
+    const normalizedProduct: Product = normalizeProduct(
+      {
+        ...newProduct,
+        id: Date.now().toString(),
+        createdBy: user?.uid,
+        createdAt: new Date().toISOString(),
+      },
+      Date.now().toString(),
+    );
+
+    if (!isFirebaseConfigured || !db || !user) {
+      setProducts((prevProducts) => [...prevProducts, normalizedProduct]);
+      return;
     }
 
     try {
-      const stored = localStorage.getItem('products');
-      return stored ? (JSON.parse(stored) as Product[]) : initialProducts;
+      await addDoc(collection(db, 'products'), {
+        name: normalizedProduct.name,
+        price: normalizedProduct.price,
+        image: normalizedProduct.image,
+        description: normalizedProduct.description,
+        vendor: normalizedProduct.vendor ?? null,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+      });
     } catch {
-      return initialProducts;
+      setError('We could not save that product to Firebase.');
+      throw new Error('product-save-failed');
     }
-  });
-
-  const addProduct = (newProduct: Omit<Product, 'id'>) => {
-    const product: Product = {
-      ...newProduct,
-      id: Date.now().toString(),
-    };
-    setProducts((prevProducts) => {
-      const updatedProducts = [...prevProducts, product];
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
-      return updatedProducts;
-    });
   };
 
-  const removeProduct = (id: string) => {
-    setProducts((prevProducts) => {
-      const updatedProducts = prevProducts.filter((product) => product.id !== id);
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
-      return updatedProducts;
-    });
+  const removeProduct = async (id: string) => {
+    if (!isFirebaseConfigured || !db) {
+      setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'products', id));
+    } catch {
+      setError('We could not remove that product from Firebase.');
+      throw new Error('product-delete-failed');
+    }
   };
 
   return (
-    <ProductsContext.Provider value={{ products, addProduct, removeProduct }}>
+    <ProductsContext.Provider
+      value={{
+        products,
+        addProduct,
+        removeProduct,
+        isLoading: isLoading || (isFirebaseConfigured && isAuthLoading),
+        error,
+        isFirebaseEnabled: isFirebaseConfigured,
+      }}
+    >
       {children}
     </ProductsContext.Provider>
   );

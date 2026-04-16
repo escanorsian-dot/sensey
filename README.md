@@ -1,13 +1,14 @@
 # Sensey - E-commerce Website
 
-A modern e-commerce website built with Next.js, TypeScript, and Tailwind CSS.
+A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Firebase-ready cloud sync.
 
 ## Features
 
 - Product listing and details
 - Shopping cart functionality
-- Checkout process
-- **Vendor dashboard** - Vendors can add their own products
+- Checkout flow placeholder
+- Vendor dashboard for adding products
+- Firebase-ready carts, products, and image uploads
 - Responsive design
 
 ## Getting Started
@@ -17,32 +18,55 @@ A modern e-commerce website built with Next.js, TypeScript, and Tailwind CSS.
 npm install
 ```
 
-2. Run the development server:
+2. Copy `.env.example` to `.env.local` and add your Firebase web app values.
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Firebase Setup
+
+The app can run in two modes:
+
+- With Firebase configured: carts sync per user, products live in Firestore, and image uploads go to Firebase Storage.
+- Without Firebase configured: the app falls back to local browser storage so the UI still works.
+
+### Required environment variables
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+```
+
+### Firebase products to enable
+
+- Authentication: enable `Anonymous`
+- Firestore Database
+- Storage
 
 ## Pages
 
 - `/` - Home page with featured products
 - `/products` - All products listing
 - `/products/[id]` - Individual product details
-- `/vendor` - **NEW:** Vendor page to add products
+- `/vendor` - Vendor page to add products
 - `/cart` - Shopping cart
 - `/checkout` - Checkout form
-
-## For Vendors
-
-Vendors can add their products by visiting `/vendor` and filling out the form. Products are stored locally and will appear in the main product listings.
+- `/admin` - Product management panel
 
 ## Payment Integration
 
 The checkout form is currently a demo. To add real payments:
 
 1. Sign up for a Stripe account
-2. Install Stripe CLI and get API keys
+2. Add a backend order flow
 3. Replace the demo payment logic with actual Stripe integration
 
 ## Technologies Used
@@ -51,22 +75,9 @@ The checkout form is currently a demo. To add real payments:
 - React 19
 - TypeScript
 - Tailwind CSS
-- Context API for state management
-- Local Storage for data persistence
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Firebase Auth, Firestore, and Storage
+- Context API for app state
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The easiest way to deploy this app is on Vercel. After the environment variables are set, redeploy the site so Firebase is available in production.
