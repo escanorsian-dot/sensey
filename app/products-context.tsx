@@ -19,6 +19,7 @@ export interface Product {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   description: string;
   vendor?: string;
   createdBy?: string;
@@ -29,6 +30,7 @@ export interface ProductDraft {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   description: string;
   vendor?: string;
 }
@@ -78,6 +80,7 @@ const normalizeProduct = (product: Partial<Product>, fallbackId: string): Produc
     typeof product.image === 'string' && product.image.length > 0
       ? product.image
       : 'https://picsum.photos/300/200?grayscale',
+  images: Array.isArray(product.images) ? product.images : [],
   description:
     typeof product.description === 'string' ? product.description : 'No description yet.',
   vendor: typeof product.vendor === 'string' && product.vendor.length > 0 ? product.vendor : undefined,
@@ -182,6 +185,7 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
         name: normalizedProduct.name,
         price: normalizedProduct.price,
         image: normalizedProduct.image,
+        images: normalizedProduct.images,
         description: normalizedProduct.description,
         vendor: normalizedProduct.vendor ?? null,
         createdBy: user.uid,
