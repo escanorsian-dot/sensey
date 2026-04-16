@@ -45,12 +45,15 @@ export default function AdminPage() {
 
       if (imageFile) {
         if (!user) {
-          throw new Error('auth-required');
+          throw new Error('You must be logged in to upload an image.');
         }
 
+        console.log('Uploading image to Supabase...');
         imageUrl = await uploadProductImage(imageFile, user.uid);
+        console.log('Image uploaded successfully:', imageUrl);
       }
 
+      console.log('Adding product to database...');
       await addProduct({
         name: formData.name,
         price: parseFloat(formData.price),
@@ -58,6 +61,7 @@ export default function AdminPage() {
         description: formData.description,
         vendor: formData.vendor || 'Sensey Admin',
       });
+      console.log('Product added successfully!');
 
       setFormData({
         name: '',
@@ -67,8 +71,9 @@ export default function AdminPage() {
         vendor: '',
       });
       setImageFile(null);
-    } catch {
-      setSubmitError('We could not add that product yet.');
+    } catch (err: any) {
+      console.error('Error adding product:', err);
+      setSubmitError(err.message || 'We could not add that product yet. Please check your connection and Supabase storage permissions.');
     } finally {
       setIsSubmitting(false);
     }
