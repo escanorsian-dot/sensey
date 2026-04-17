@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 
 export async function DELETE(
@@ -8,6 +8,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const db = getDB();
 
     await deleteDoc(doc(db, 'products', id));
 

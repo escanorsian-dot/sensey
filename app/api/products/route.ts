@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { collection, getDocs, addDoc, query, orderBy } from 'firebase/firestore';
 
 export async function GET() {
   try {
+    const db = getDB();
     const productsRef = collection(db, 'products');
     const q = query(productsRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -26,6 +27,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const db = getDB();
     const body = await req.json();
     
     const productData = {

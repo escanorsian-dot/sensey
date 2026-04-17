@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { getDB } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
 export async function GET() {
   try {
+    const db = getDB();
     await getDocs(collection(db, '_health'));
     
     return NextResponse.json({
