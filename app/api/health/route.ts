@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export async function GET() {
   try {
-    const mongoTest = await connectDB();
+    await getDocs(collection(db, '_health'));
     
     return NextResponse.json({
       status: 'ok',
-      mongodb: mongoTest ? 'connected' : 'disconnected',
+      firebase: 'connected',
       cloudinary: {
         cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? '✓' : '✗',
         api_key: process.env.CLOUDINARY_API_KEY ? '✓' : '✗',
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json({
       status: 'error',
       message: error.message,
-      mongodb: 'failed to connect'
+      firebase: 'failed to connect'
     }, { status: 500 });
   }
 }
