@@ -83,8 +83,8 @@ export default function ProductDetail() {
 
             <div className="space-y-6 pt-4">
               <div className="flex items-baseline space-x-2">
-                <span className="text-5xl font-black text-emerald-600 tracking-tighter">${product.price}</span>
-                <span className="text-slate-400 font-bold uppercase text-xs tracking-widest">USD + Tax</span>
+                <span className="text-5xl font-black text-emerald-600 tracking-tighter">₹{product.price.toLocaleString('en-IN')}</span>
+                <span className="text-slate-400 font-bold uppercase text-xs tracking-widest">INR + Tax</span>
               </div>
               
               <button

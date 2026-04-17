@@ -109,7 +109,7 @@ export default function VendorPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">Price ($) *</label>
+            <label className="block text-xs font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">Price (₹) *</label>
             <input
               type="number"
               name="price"

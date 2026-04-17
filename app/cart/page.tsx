@@ -45,7 +45,7 @@ export default function CartPage() {
             />
             <div className="flex-1">
               <h2 className="text-xl font-semibold">{item.name}</h2>
-              <p className="text-gray-600">${item.price}</p>
+              <p className="text-gray-600">₹{item.price.toLocaleString('en-IN')}</p>
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -62,7 +62,7 @@ export default function CartPage() {
                 +
               </button>
             </div>
-            <p className="font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+            <p className="font-bold">₹{(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             <button
               onClick={() => removeItem(item.id)}
               className="text-red-500 hover:text-red-700"
@@ -73,7 +73,7 @@ export default function CartPage() {
         ))}
       </div>
       <div className="mt-8 flex justify-between items-center">
-        <p className="text-2xl font-bold">Total: ${state.total.toFixed(2)}</p>
+        <p className="text-2xl font-bold">Total: ₹{state.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <Link
           href="/checkout"
           className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 text-lg font-semibold"

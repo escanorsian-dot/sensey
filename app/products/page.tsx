@@ -27,7 +27,7 @@ export default function ProductsPage() {
               )}
               <p className="text-slate-700 mb-4">{product.description}</p>
               <div className="flex justify-between items-center">
-                <span className="text-2xl font-extrabold text-emerald-700">${product.price}</span>
+                <span className="text-2xl font-extrabold text-emerald-700">₹{product.price.toLocaleString('en-IN')}</span>
                 <Link
                   href={`/products/${product.id}`}
                   className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
