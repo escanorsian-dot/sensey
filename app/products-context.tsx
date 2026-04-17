@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './auth-context';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface Product {
   id: string;
@@ -49,24 +48,25 @@ const initialProducts: Product[] = [
 export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch products from Supabase
+  // Fetch products from MongoDB
   const fetchProducts = async () => {
-    if (!supabase) return;
-    
     try {
-      const { data, error: fetchErr } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/products', {
+        method: 'GET',
+      });
 
-      if (fetchErr) throw fetchErr;
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
 
-      if (data) {
-        setProducts(data.map(p => ({
-          id: p.id.toString(),
+      const data = await response.json();
+
+      if (data && Array.isArray(data)) {
+        setProducts(data.map((p: any) => ({
+          id: p._id || '',
           name: p.name,
           price: Number(p.price),
           image: p.image,
@@ -74,11 +74,11 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
           description: p.description,
           vendor: p.vendor,
           createdBy: p.owner_id,
-          createdAt: p.created_at
+          createdAt: p.createdAt
         })));
       }
     } catch (err: any) {
-      console.error('Supabase Fetch Error:', err);
+      console.error('MongoDB Fetch Error:', err);
       setError(`Database Error: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -86,41 +86,17 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   useEffect(() => {
-    if (isSupabaseConfigured) {
-      fetchProducts();
-
-      // Subscribe to real-time changes
-      const channel = supabase!
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'products' },
-          () => fetchProducts()
-        )
-        .subscribe();
-
-      return () => {
-        supabase!.removeChannel(channel);
-      };
-    }
+    fetchProducts();
   }, []);
 
   const addProduct = async (newProduct: ProductDraft) => {
-    if (!supabase) {
-      // Local fallback if Supabase not configured
-      const localProduct = {
-        ...newProduct,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-      };
-      setProducts(prev => [localProduct, ...prev]);
-      return;
-    }
-
     try {
-      const { error: insertErr } = await supabase
-        .from('products')
-        .insert([{
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: newProduct.name,
           price: newProduct.price,
           image: newProduct.image,
@@ -128,37 +104,35 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
           description: newProduct.description,
           vendor: newProduct.vendor,
           owner_id: user?.uid || 'anonymous'
-        }]);
+        }),
+      });
 
-      if (insertErr) {
-        console.error('Full Supabase Error Object:', insertErr);
-        alert(`Supabase Error: ${insertErr.message}\nCode: ${insertErr.code}\nDetails: ${insertErr.details}`);
-        throw insertErr;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add product');
       }
-      
-      // Real-time subscription will handle the UI update
+
+      await fetchProducts();
     } catch (err: any) {
-      console.error('Supabase Insert Error:', err);
+      console.error('MongoDB Insert Error:', err);
       setError(`Failed to save: ${err.message}`);
       throw err;
     }
   };
 
   const removeProduct = async (id: string) => {
-    if (!supabase) {
-      setProducts(prev => prev.filter(p => p.id !== id));
-      return;
-    }
-
     try {
-      const { error: deleteErr } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (deleteErr) throw deleteErr;
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+
+      await fetchProducts();
     } catch (err: any) {
-      console.error('Supabase Delete Error:', err);
+      console.error('MongoDB Delete Error:', err);
       setError(`Failed to remove: ${err.message}`);
     }
   };
