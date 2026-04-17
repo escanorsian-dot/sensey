@@ -50,7 +50,6 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch products from MongoDB
   const fetchProducts = async () => {
     try {
       const response = await fetch('/api/products', {
@@ -65,7 +64,7 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       if (data && Array.isArray(data)) {
         setProducts(data.map((p: any) => ({
-          id: p._id || '',
+          id: p.id || p._id || '',
           name: p.name,
           price: Number(p.price),
           image: p.image,
@@ -77,7 +76,7 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
         })));
       }
     } catch (err: any) {
-      console.error('MongoDB Fetch Error:', err);
+      console.error('Fetch Error:', err);
       setError(`Database Error: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -113,7 +112,7 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       await fetchProducts();
     } catch (err: any) {
-      console.error('MongoDB Insert Error:', err);
+      console.error('Insert Error:', err);
       setError(`Failed to save: ${err.message}`);
       throw err;
     }
@@ -131,7 +130,7 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       await fetchProducts();
     } catch (err: any) {
-      console.error('MongoDB Delete Error:', err);
+      console.error('Delete Error:', err);
       setError(`Failed to remove: ${err.message}`);
     }
   };
