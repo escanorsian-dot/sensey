@@ -7,7 +7,7 @@ import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
 
 export default function AdminPage() {
-  const { products, addProduct, removeProduct, error, isFirebaseEnabled, isLoading } = useProducts();
+  const { products, addProduct, removeProduct, error, isLoading } = useProducts();
   const { user, isLoading: isAuthLoading } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -101,12 +101,6 @@ export default function AdminPage() {
           {/* Form Side */}
           <div className="lg:col-span-7">
             <div className="space-y-4 mb-8">
-              {!isFirebaseEnabled && (
-                <div className="bg-amber-50 border-2 border-amber-200 text-amber-800 rounded-2xl px-6 py-4 font-black text-sm flex items-center">
-                  <span className="mr-3 text-xl">🚀</span>
-                  LOCAL MODE: Check Vercel Firebase Environment Variables for Cloud Sync.
-                </div>
-              )}
               {(submitError || error) && (
                 <div className="bg-rose-50 border-2 border-rose-200 text-rose-800 rounded-2xl px-6 py-4 font-black text-sm flex items-center">
                   <span className="mr-3 text-xl">❌</span>

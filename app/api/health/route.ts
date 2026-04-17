@@ -13,10 +13,6 @@ export async function GET() {
         api_key: process.env.CLOUDINARY_API_KEY ? '✓' : '✗',
         api_secret: process.env.CLOUDINARY_API_SECRET ? '✓' : '✗',
       },
-      firebase: {
-        api_key: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '✓' : '✗',
-        project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? '✓' : '✗',
-      }
     });
   } catch (error: any) {
     return NextResponse.json({

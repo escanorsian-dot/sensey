@@ -7,7 +7,7 @@ import { useProducts } from '../products-context';
 
 
 export default function VendorPage() {
-  const { addProduct, error, isFirebaseEnabled, isLoading } = useProducts();
+  const { addProduct, error, isLoading } = useProducts();
   const { user, error: authError, isLoading: isAuthLoading } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -86,11 +86,6 @@ export default function VendorPage() {
       <h1 className="text-4xl font-black mb-8 text-center text-slate-900 tracking-tighter">List Your Item</h1>
       
       <div className="space-y-3 mb-8 text-sm text-center">
-        {!isFirebaseEnabled && (
-          <div className="bg-amber-50 border-2 border-amber-200 text-amber-800 rounded-2xl px-6 py-4 font-bold shadow-sm">
-            🚀 Running in Local Mode. Your items will be saved to this browser only.
-          </div>
-        )}
         {(error || authError || submitError) && (
           <p className="rounded-2xl border-2 border-rose-200 bg-rose-50 px-6 py-4 text-rose-800 font-bold shadow-md">
             ❌ {submitError || authError || error}

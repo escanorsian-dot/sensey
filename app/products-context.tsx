@@ -30,7 +30,6 @@ interface ProductsContextType {
   removeProduct: (id: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
-  isFirebaseEnabled: boolean; // Keeping for UI compatibility
 }
 
 const ProductsContext = createContext<ProductsContextType | null>(null);
@@ -145,7 +144,6 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
         removeProduct,
         isLoading,
         error,
-        isFirebaseEnabled: true, // Keep as true for UI badges
       }}
     >
       {children}

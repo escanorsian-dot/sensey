@@ -1,11 +1,5 @@
 'use client';
 
-import {
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-} from 'firebase/firestore';
 import React, {
   createContext,
   useContext,
@@ -16,7 +10,6 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useAuth } from './auth-context';
-import { db, isFirebaseConfigured } from '../lib/firebase';
 import { type Product } from './products-context';
 
 interface CartItem extends Product {
@@ -136,99 +129,52 @@ const CartContext = createContext<{
   dispatch: React.Dispatch<CartAction>;
   isLoading: boolean;
   error: string | null;
-  isFirebaseEnabled: boolean;
 } | null>(null);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [state, dispatch] = useReducer(cartReducer, initialCartState);
   const hasHydrated = useRef(false);
-  const skipNextWrite = useRef(true);
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !db || !user) {
-      if (typeof window === 'undefined') {
-        hasHydrated.current = true;
-        return;
-      }
-
-      const storedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (!storedCart) {
-        hasHydrated.current = true;
-        return;
-      }
-
-      try {
-        const parsedCart = JSON.parse(storedCart) as CartState;
-        dispatch({ type: 'INITIALIZE_CART', payload: parsedCart });
-      } catch {
-        localStorage.removeItem(CART_STORAGE_KEY);
-      } finally {
-        hasHydrated.current = true;
-      }
-
+    if (typeof window === 'undefined') {
+      hasHydrated.current = true;
       return;
     }
 
-    const cartRef = doc(db, 'carts', user.uid);
-    const unsubscribe = onSnapshot(
-      cartRef,
-      (snapshot) => {
-        skipNextWrite.current = true;
-        if (!snapshot.exists()) {
-          dispatch({ type: 'INITIALIZE_CART', payload: initialCartState });
-          hasHydrated.current = true;
-          return;
-        }
+    const storedCart = localStorage.getItem(CART_STORAGE_KEY);
+    if (!storedCart) {
+      hasHydrated.current = true;
+      return;
+    }
 
-        const data = snapshot.data() as Partial<CartState>;
-        dispatch({ type: 'INITIALIZE_CART', payload: normalizeState(data) });
-        hasHydrated.current = true;
-        setError(null);
-      },
-      () => {
-        setError('We could not sync your cart from Firebase.');
-        hasHydrated.current = true;
-      },
-    );
-
-    return unsubscribe;
-  }, [user]);
+    try {
+      const parsedCart = JSON.parse(storedCart) as CartState;
+      dispatch({ type: 'INITIALIZE_CART', payload: parsedCart });
+    } catch {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } finally {
+      hasHydrated.current = true;
+    }
+  }, []);
 
   useEffect(() => {
     if (!hasHydrated.current) {
       return;
     }
 
-    if (!isFirebaseConfigured || !db || !user) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
-      }
-      return;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
     }
-
-    if (skipNextWrite.current) {
-      skipNextWrite.current = false;
-      return;
-    }
-
-    void setDoc(doc(db, 'carts', user.uid), {
-      items: state.items,
-      total: state.total,
-      updatedAt: serverTimestamp(),
-    }).catch(() => {
-      setError('We could not save your cart to Firebase.');
-    });
-  }, [state, user]);
+  }, [state]);
 
   const value = useMemo(
     () => ({
       state,
       dispatch,
-      isLoading: isFirebaseConfigured && isAuthLoading && !hasHydrated.current,
+      isLoading: isAuthLoading && !hasHydrated.current,
       error,
-      isFirebaseEnabled: isFirebaseConfigured,
     }),
     [error, isAuthLoading, state],
   );

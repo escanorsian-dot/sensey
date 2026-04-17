@@ -1,12 +1,10 @@
 'use client';
 
-import {
-  type User,
-  onAuthStateChanged,
-  signInAnonymously,
-} from 'firebase/auth';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { createContext, useContext, useMemo, useState } from 'react';
+
+interface User {
+  uid: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -18,44 +16,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(isFirebaseConfigured));
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      return;
-    }
-
-    const firebaseAuth = auth;
-
-    const unsubscribe = onAuthStateChanged(
-      firebaseAuth,
-      async (nextUser) => {
-        if (nextUser) {
-          setUser(nextUser);
-          setIsLoading(false);
-          return;
-        }
-
-        try {
-          await signInAnonymously(firebaseAuth);
-        } catch {
-          setError('Firebase anonymous sign-in is not enabled yet.');
-          setIsLoading(false);
-        }
-      },
-      () => {
-        setError('We could not connect to Firebase authentication.');
-        setIsLoading(false);
-      },
-    );
-
-    return unsubscribe;
-  }, []);
+  const [user] = useState<User | null>({ uid: 'anonymous' });
+  const [isLoading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   const value = useMemo(
-    () => ({ user, isLoading, error, isFirebaseEnabled: isFirebaseConfigured }),
+    () => ({ user, isLoading, error, isFirebaseEnabled: false }),
     [error, isLoading, user],
   );
 
