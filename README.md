@@ -1,6 +1,6 @@
 # Sensey - E-commerce Website
 
-A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Firebase-ready cloud sync.
+A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Supabase for real-time database and image storage.
 
 ## Features
 
@@ -8,7 +8,8 @@ A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Fi
 - Shopping cart functionality
 - Checkout flow placeholder
 - Vendor dashboard for adding products
-- Firebase-ready carts, products, and image uploads
+- Supabase database for products and real-time sync
+- Image storage on Supabase
 - Responsive design
 
 ## Getting Started
@@ -18,7 +19,18 @@ A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Fi
 npm install
 ```
 
-2. Copy `.env.example` to `.env.local` and add your Firebase web app values.
+2. **Set up Supabase** (Required):
+   - Create a [Supabase](https://supabase.com) account and project
+   - Copy `.env.example` to `.env.local` and add your Supabase credentials:
+     ```env
+     NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+     ```
+   - Follow the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) guide to:
+     - Create the `products` table
+     - Set up Row Level Security policies
+     - Create the `product-images` storage bucket
+   - See [SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md) to verify everything is configured correctly
 
 3. Run the development server:
 ```bash
@@ -27,29 +39,30 @@ npm run dev
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Firebase Setup
+## Supabase Setup
 
-The app can run in two modes:
+The app requires Supabase for:
+- **Database**: Storing product information in a `products` table
+- **Storage**: Storing product images in a `product-images` bucket
+- **Real-time sync**: Live updates when products are added/removed
 
-- With Firebase configured: carts sync per user, products live in Firestore, and image uploads go to Firebase Storage.
-- Without Firebase configured: the app falls back to local browser storage so the UI still works.
+👉 **See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions**
 
-### Required environment variables
+### Required Supabase Components
 
-```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-```
+✅ **Products Table** with fields:
+- id, name, price, image, images[], description, vendor, owner_id, created_at, updated_at
 
-### Firebase products to enable
+✅ **Row Level Security Policies** (4 total):
+- Public read access
+- Public insert access
+- User update permissions
+- User delete permissions
 
-- Authentication: enable `Anonymous`
-- Firestore Database
-- Storage
+✅ **Product Images Storage Bucket**:
+- Bucket name: `product-images`
+- Access level: Public
+- With appropriate upload, download, and delete policies
 
 ## Pages
 
@@ -75,9 +88,13 @@ The checkout form is currently a demo. To add real payments:
 - React 19
 - TypeScript
 - Tailwind CSS
-- Firebase Auth, Firestore, and Storage
+- Supabase (Database & Storage)
 - Context API for app state
 
 ## Deploy on Vercel
 
-The easiest way to deploy this app is on Vercel. After the environment variables are set, redeploy the site so Firebase is available in production.
+The easiest way to deploy this app is on Vercel. After the environment variables are set, redeploy the site so Supabase is available in production.
+
+---
+
+**Having issues?** Check [SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md) for troubleshooting.

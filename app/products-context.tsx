@@ -1,18 +1,8 @@
 'use client';
 
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-} from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './auth-context';
-import { db, isFirebaseConfigured } from '../lib/firebase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface Product {
   id: string;
@@ -41,7 +31,7 @@ interface ProductsContextType {
   removeProduct: (id: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
-  isFirebaseEnabled: boolean;
+  isFirebaseEnabled: boolean; // Keeping for UI compatibility
 }
 
 const ProductsContext = createContext<ProductsContextType | null>(null);
@@ -54,160 +44,122 @@ const initialProducts: Product[] = [
     image: 'https://picsum.photos/300/200?random=1',
     description: 'This is an amazing gadget that does wonderful things.',
   },
-  {
-    id: '2',
-    name: 'Super Tool',
-    price: 49.99,
-    image: 'https://picsum.photos/300/200?random=2',
-    description: 'A super tool for all your needs.',
-  },
-  {
-    id: '3',
-    name: 'Cool Device',
-    price: 149.99,
-    image: 'https://picsum.photos/300/200?random=3',
-    description: 'The coolest device on the market.',
-  },
 ];
 
-const PRODUCTS_STORAGE_KEY = 'products';
-
-const normalizeProduct = (product: Partial<Product>, fallbackId: string): Product => ({
-  id: typeof product.id === 'string' ? product.id : fallbackId,
-  name: typeof product.name === 'string' ? product.name : 'Untitled product',
-  price: Number.isFinite(Number(product.price)) ? Number(product.price) : 0,
-  image:
-    typeof product.image === 'string' && product.image.length > 0
-      ? product.image
-      : 'https://picsum.photos/300/200?grayscale',
-  images: Array.isArray(product.images) ? product.images : [],
-  description:
-    typeof product.description === 'string' ? product.description : 'No description yet.',
-  vendor: typeof product.vendor === 'string' && product.vendor.length > 0 ? product.vendor : undefined,
-  createdBy:
-    typeof product.createdBy === 'string' && product.createdBy.length > 0
-      ? product.createdBy
-      : undefined,
-  createdAt:
-    typeof product.createdAt === 'string' && product.createdAt.length > 0
-      ? product.createdAt
-      : undefined,
-});
-
-const loadLocalProducts = (): Product[] => {
-  if (typeof window === 'undefined') {
-    return initialProducts;
-  }
-
-  try {
-    const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!stored) {
-      return initialProducts;
-    }
-
-    const parsed = JSON.parse(stored) as Partial<Product>[];
-    return parsed.map((product, index) => normalizeProduct(product, `${index + 1}`));
-  } catch {
-    return initialProducts;
-  }
-};
-
 export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const [products, setProducts] = useState<Product[]>(loadLocalProducts);
-  const [isLoading, setIsLoading] = useState(Boolean(isFirebaseConfigured));
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isFirebaseConfigured || !db) {
-      return;
+  // Fetch products from Supabase
+  const fetchProducts = async () => {
+    if (!supabase) return;
+    
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fetchErr) throw fetchErr;
+
+      if (data) {
+        setProducts(data.map(p => ({
+          id: p.id.toString(),
+          name: p.name,
+          price: Number(p.price),
+          image: p.image,
+          images: p.images || [],
+          description: p.description,
+          vendor: p.vendor,
+          createdBy: p.owner_id,
+          createdAt: p.created_at
+        })));
+      }
+    } catch (err: any) {
+      console.error('Supabase Fetch Error:', err);
+      setError(`Database Error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+  useEffect(() => {
+    if (isSupabaseConfigured) {
+      fetchProducts();
 
-    const unsubscribe = onSnapshot(
-      productsQuery,
-      (snapshot) => {
-        setProducts(
-          snapshot.docs.map((snapshotDoc) => {
-            const data = snapshotDoc.data() as Partial<Product> & {
-              createdAt?: { toDate?: () => Date };
-            };
+      // Subscribe to real-time changes
+      const channel = supabase!
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'products' },
+          () => fetchProducts()
+        )
+        .subscribe();
 
-            return normalizeProduct(
-              {
-                ...data,
-                id: snapshotDoc.id,
-                createdAt: data.createdAt?.toDate?.()?.toISOString(),
-              },
-              snapshotDoc.id,
-            );
-          }),
-        );
-        setIsLoading(false);
-        setError(null);
-      },
-      () => {
-        setError('We could not sync products from Firebase.');
-        setIsLoading(false);
-      },
-    );
-
-    return unsubscribe;
+      return () => {
+        supabase!.removeChannel(channel);
+      };
+    }
   }, []);
 
-  useEffect(() => {
-    if (isFirebaseConfigured || typeof window === 'undefined') {
-      return;
-    }
-
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-  }, [products]);
-
   const addProduct = async (newProduct: ProductDraft) => {
-    const normalizedProduct: Product = normalizeProduct(
-      {
+    if (!supabase) {
+      // Local fallback if Supabase not configured
+      const localProduct = {
         ...newProduct,
         id: Date.now().toString(),
-        createdBy: user?.uid,
-        createdAt: new Date().toISOString(),
-      },
-      Date.now().toString(),
-    );
-
-    if (!isFirebaseConfigured || !db || !user) {
-      setProducts((prevProducts) => [...prevProducts, normalizedProduct]);
+        createdAt: new Date().toISOString()
+      };
+      setProducts(prev => [localProduct, ...prev]);
       return;
     }
 
     try {
-      await addDoc(collection(db, 'products'), {
-        name: normalizedProduct.name,
-        price: normalizedProduct.price,
-        image: normalizedProduct.image,
-        images: normalizedProduct.images,
-        description: normalizedProduct.description,
-        vendor: normalizedProduct.vendor ?? null,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-      });
-    } catch {
-      setError('We could not save that product to Firebase.');
-      throw new Error('product-save-failed');
+      const { error: insertErr } = await supabase
+        .from('products')
+        .insert([{
+          name: newProduct.name,
+          price: newProduct.price,
+          image: newProduct.image,
+          images: newProduct.images || [],
+          description: newProduct.description,
+          vendor: newProduct.vendor,
+          owner_id: user?.uid || 'anonymous'
+        }]);
+
+      if (insertErr) {
+        console.error('Full Supabase Error Object:', insertErr);
+        alert(`Supabase Error: ${insertErr.message}\nCode: ${insertErr.code}\nDetails: ${insertErr.details}`);
+        throw insertErr;
+      }
+      
+      // Real-time subscription will handle the UI update
+    } catch (err: any) {
+      console.error('Supabase Insert Error:', err);
+      setError(`Failed to save: ${err.message}`);
+      throw err;
     }
   };
 
   const removeProduct = async (id: string) => {
-    if (!isFirebaseConfigured || !db) {
-      setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
+    if (!supabase) {
+      setProducts(prev => prev.filter(p => p.id !== id));
       return;
     }
 
     try {
-      await deleteDoc(doc(db, 'products', id));
-    } catch {
-      setError('We could not remove that product from Firebase.');
-      throw new Error('product-delete-failed');
+      const { error: deleteErr } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (deleteErr) throw deleteErr;
+    } catch (err: any) {
+      console.error('Supabase Delete Error:', err);
+      setError(`Failed to remove: ${err.message}`);
     }
   };
 
@@ -217,9 +169,9 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
         products,
         addProduct,
         removeProduct,
-        isLoading: isLoading || (isFirebaseConfigured && isAuthLoading),
+        isLoading,
         error,
-        isFirebaseEnabled: isFirebaseConfigured,
+        isFirebaseEnabled: true, // Keep as true for UI badges
       }}
     >
       {children}
