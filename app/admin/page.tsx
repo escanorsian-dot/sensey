@@ -11,7 +11,7 @@ function formatCurrency(amount: number) {
 }
 
 export default function AdminPage() {
-  const { products, addProduct, removeProduct, error, isLoading } = useProducts();
+  const { products, addProduct, removeProduct, error } = useProducts();
   const { user } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -24,16 +24,21 @@ export default function AdminPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'payments'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts'>('products');
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
   const [qrFile, setQrFile] = useState<File | null>(null);
   const [isUploadingQR, setIsUploadingQR] = useState(false);
   const [qrMessage, setQrMessage] = useState<string | null>(null);
 
+  const [receipts, setReceipts] = useState<Array<{ id: string; imageUrl: string; timestamp: number }>>([]);
+
   useEffect(() => {
     const storedQR = localStorage.getItem('sensey_payment_qr');
     if (storedQR) setPaymentQR(storedQR);
+
+    const storedReceipts = localStorage.getItem('sensey_receipts');
+    if (storedReceipts) setReceipts(JSON.parse(storedReceipts));
   }, []);
 
   const handleQRChange = (file: File | null) => {
@@ -47,13 +52,13 @@ export default function AdminPage() {
     setQrMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', qrFile);
-      formData.append('folder', 'sensey/payments');
+      const formDataQR = new FormData();
+      formDataQR.append('file', qrFile);
+      formDataQR.append('folder', 'sensey/payments');
 
       const response = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        body: formDataQR,
       });
 
       if (!response.ok) throw new Error('Upload failed');
@@ -139,9 +144,9 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-10">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
               <p className="text-slate-500 font-medium mt-1">Manage your inventory & payments</p>
             </div>
             <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
@@ -151,84 +156,92 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-3xl shadow-xl text-white">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10">
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-indigo-200 text-sm font-medium">Total Products</p>
-                <p className="text-4xl font-black mt-2">{totalInventory}</p>
+                <p className="text-indigo-200 text-xs md:text-sm font-medium">Total Products</p>
+                <p className="text-3xl md:text-4xl font-black mt-2">{totalInventory}</p>
               </div>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <span className="text-3xl">📦</span>
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+                <span className="text-2xl md:text-3xl">📦</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl shadow-xl text-white">
+          <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-emerald-200 text-sm font-medium">Avg. Price</p>
-                <p className="text-4xl font-black mt-2">{formatCurrency(avgPrice)}</p>
+                <p className="text-emerald-200 text-xs md:text-sm font-medium">Avg. Price</p>
+                <p className="text-3xl md:text-4xl font-black mt-2">{formatCurrency(avgPrice)}</p>
               </div>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <span className="text-3xl">💰</span>
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+                <span className="text-2xl md:text-3xl">💰</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-3xl shadow-xl text-white">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-amber-100 text-sm font-medium">Payment Status</p>
-                <p className="text-2xl font-black mt-2">{paymentQR ? 'Active' : 'Setup Needed'}</p>
+                <p className="text-amber-100 text-xs md:text-sm font-medium">Payment Status</p>
+                <p className="text-xl md:text-2xl font-black mt-2">{paymentQR ? 'Active' : 'Setup Needed'}</p>
               </div>
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <span className="text-3xl">{paymentQR ? '✅' : '⚠️'}</span>
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+                <span className="text-2xl md:text-3xl">{paymentQR ? '✅' : '⚠️'}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-10">
-          <div className="flex border-b border-slate-100">
+        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-8 md:mb-10">
+          <div className="flex border-b border-slate-100 overflow-x-auto">
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
+              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
                 activeTab === 'products'
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              📦 Product Management
+              📦 Products
             </button>
             <button
               onClick={() => setActiveTab('payments')}
-              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
+              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
                 activeTab === 'payments'
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              💳 Payment Settings
+              💳 Payments
+            </button>
+            <button
+              onClick={() => setActiveTab('receipts')}
+              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
+                activeTab === 'receipts'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              📋 Receipts {receipts.length > 0 && `(${receipts.length})`}
             </button>
           </div>
 
-          <div className="p-8">
-            {activeTab === 'products' ? (
+          <div className="p-6 md:p-8">
+            {activeTab === 'products' && (
               <div className="space-y-8">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-slate-900">Add New Product</h2>
-                </div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Add New Product</h2>
 
                 {(submitError || error) && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl px-6 py-4 font-semibold flex items-center gap-3">
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl md:rounded-2xl px-6 py-4 font-semibold flex items-center gap-3">
                     <span className="text-xl">❌</span>
                     {submitError || error}
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Product Name *</label>
                       <input
@@ -237,7 +250,7 @@ export default function AdminPage() {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
                         placeholder="Enter product name"
                       />
                     </div>
@@ -252,7 +265,7 @@ export default function AdminPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
                         placeholder="0.00"
                       />
                     </div>
@@ -266,12 +279,12 @@ export default function AdminPage() {
                       onChange={handleChange}
                       required
                       rows={3}
-                      className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300"
+                      className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
                       placeholder="Describe the product..."
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Brand / Vendor</label>
                       <input
@@ -279,7 +292,7 @@ export default function AdminPage() {
                         name="vendor"
                         value={formData.vendor}
                         onChange={handleChange}
-                        className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
                         placeholder="Brand name"
                       />
                     </div>
@@ -287,7 +300,7 @@ export default function AdminPage() {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-4 rounded-2xl hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 active:scale-95"
+                        className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-3 md:p-4 rounded-xl md:rounded-2xl hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 font-bold text-base md:text-lg shadow-lg transition-all transform hover:-translate-y-1 active:scale-95"
                       >
                         {isSubmitting ? '⏳ Adding...' : '➕ Add Product'}
                       </button>
@@ -296,7 +309,7 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">Product Images (Max 4)</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                       {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="relative">
                           <input
@@ -308,18 +321,18 @@ export default function AdminPage() {
                           />
                           <label
                             htmlFor={`admin-file-${i}`}
-                            className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                            className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all ${
                               imageFiles[i] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50'
                             }`}
                           >
                             {imageFiles[i] ? (
                               <div className="text-center p-2">
-                                <span className="text-2xl block">✅</span>
+                                <span className="text-xl md:text-2xl block">✅</span>
                                 <p className="text-[10px] font-bold text-emerald-700 truncate max-w-[80px] mt-1">Ready</p>
                               </div>
                             ) : (
                               <div className="text-center">
-                                <span className="text-2xl block">📸</span>
+                                <span className="text-xl md:text-2xl block">📸</span>
                                 <p className="text-[10px] font-bold text-slate-400 mt-1">{i === 0 ? 'Primary' : `Image ${i + 1}`}</p>
                               </div>
                             )}
@@ -330,17 +343,17 @@ export default function AdminPage() {
                   </div>
                 </form>
               </div>
-            ) : (
-              <div className="space-y-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Payment QR Code</h2>
-                    <p className="text-slate-500 mt-1">Upload your UPI QR code for customer payments</p>
-                  </div>
+            )}
+
+            {activeTab === 'payments' && (
+              <div className="space-y-6 md:space-y-8">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-900">Payment QR Code</h2>
+                  <p className="text-slate-500 mt-1">Upload your UPI QR code for customer payments</p>
                 </div>
 
                 {qrMessage && (
-                  <div className={`px-6 py-4 rounded-2xl font-semibold flex items-center gap-3 ${
+                  <div className={`px-6 py-4 rounded-xl md:rounded-2xl font-semibold flex items-center gap-3 ${
                     qrMessage.includes('success') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
                   }`}>
                     <span className="text-xl">{qrMessage.includes('success') ? '✅' : '❌'}</span>
@@ -348,12 +361,12 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-slate-50 rounded-3xl p-8 border-2 border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6">Current QR Code</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                  <div className="bg-slate-50 rounded-2xl md:rounded-3xl p-6 md:p-8 border-2 border-slate-100">
+                    <h3 className="text-lg font-bold text-slate-900 mb-4 md:mb-6">Current QR Code</h3>
                     {paymentQR ? (
                       <div className="space-y-4">
-                        <div className="relative aspect-square bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-200">
+                        <div className="relative aspect-square bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-200">
                           <Image
                             src={paymentQR}
                             alt="Payment QR Code"
@@ -366,23 +379,23 @@ export default function AdminPage() {
                             localStorage.removeItem('sensey_payment_qr');
                             setPaymentQR(null);
                           }}
-                          className="w-full py-3 bg-rose-100 text-rose-700 rounded-xl font-bold hover:bg-rose-200 transition-all"
+                          className="w-full py-2 md:py-3 bg-rose-100 text-rose-700 rounded-lg md:rounded-xl font-bold hover:bg-rose-200 transition-all"
                         >
                           🗑️ Remove QR Code
                         </button>
                       </div>
                     ) : (
-                      <div className="aspect-square bg-white rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center">
+                      <div className="aspect-square bg-white rounded-xl md:rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center">
                         <div className="text-center text-slate-400">
-                          <span className="text-5xl block mb-3">📱</span>
+                          <span className="text-4xl md:text-5xl block mb-3">📱</span>
                           <p className="font-semibold">No QR code uploaded</p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl p-8 border border-indigo-100">
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-indigo-100">
                       <h3 className="text-lg font-bold text-slate-900 mb-4">Upload New QR Code</h3>
                       <div className="space-y-4">
                         <input
@@ -394,32 +407,32 @@ export default function AdminPage() {
                         />
                         <label
                           htmlFor="qr-upload"
-                          className={`flex items-center justify-center gap-3 p-6 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                          className={`flex items-center justify-center gap-3 p-4 md:p-6 border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all ${
                             qrFile ? 'border-emerald-500 bg-emerald-50' : 'border-indigo-300 hover:border-indigo-500 hover:bg-white'
                           }`}
                         >
-                          <span className="text-2xl">{qrFile ? '✅' : '📤'}</span>
-                          <span className="font-semibold text-slate-700">
+                          <span className="text-xl md:text-2xl">{qrFile ? '✅' : '📤'}</span>
+                          <span className="font-semibold text-slate-700 text-sm md:text-base">
                             {qrFile ? qrFile.name : 'Click to select QR image'}
                           </span>
                         </label>
                         <button
                           onClick={handleUploadQR}
                           disabled={!qrFile || isUploadingQR}
-                          className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1 active:scale-95"
+                          className="w-full py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1 active:scale-95"
                         >
                           {isUploadingQR ? '⏳ Uploading...' : '🚀 Upload QR Code'}
                         </button>
                       </div>
                     </div>
 
-                    <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
+                    <div className="bg-amber-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-amber-200">
                       <div className="flex items-start gap-3">
-                        <span className="text-2xl">💡</span>
+                        <span className="text-xl md:text-2xl">💡</span>
                         <div>
                           <p className="font-bold text-amber-800">Tip</p>
                           <p className="text-sm text-amber-700 mt-1">
-                            Upload your UPI QR code (Google Pay, PhonePe, Paytm, etc.) or any payment QR code. 
+                            Upload your UPI QR code (Google Pay, PhonePe, Paytm, etc.). 
                             Customers will see this during checkout.
                           </p>
                         </div>
@@ -429,44 +442,111 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+
+            {activeTab === 'receipts' && (
+              <div className="space-y-6 md:space-y-8">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-900">Payment Receipts</h2>
+                  <p className="text-slate-500 mt-1">View and manage customer payment receipts</p>
+                </div>
+
+                {receipts.length === 0 ? (
+                  <div className="text-center py-12 md:py-16 bg-slate-50 rounded-2xl md:rounded-3xl border-2 border-dashed border-slate-200">
+                    <span className="text-5xl md:text-6xl block mb-4">📋</span>
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2">No receipts yet</h3>
+                    <p className="text-slate-500 max-w-md mx-auto text-sm md:text-base px-4">
+                      When customers submit their payment receipts after checkout, they will appear here for verification.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    {receipts.map((receipt) => (
+                      <div key={receipt.id} className="bg-white border border-slate-200 rounded-xl md:rounded-2xl overflow-hidden shadow-md">
+                        <div className="relative aspect-[4/3] bg-slate-100">
+                          <Image
+                            src={receipt.imageUrl}
+                            alt="Payment Receipt"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <p className="text-xs text-slate-500">
+                            Submitted: {new Date(receipt.timestamp).toLocaleString('en-IN')}
+                          </p>
+                          <div className="flex gap-2 mt-3">
+                            <button className="flex-1 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-sm hover:bg-emerald-200 transition-all">
+                              ✓ Verify
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const updated = receipts.filter(r => r.id !== receipt.id);
+                                setReceipts(updated);
+                                localStorage.setItem('sensey_receipts', JSON.stringify(updated));
+                              }}
+                              className="py-2 px-3 bg-rose-100 text-rose-700 rounded-lg font-bold text-sm hover:bg-rose-200 transition-all"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="bg-indigo-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-indigo-200">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl md:text-2xl">ℹ️</span>
+                    <div>
+                      <p className="font-bold text-indigo-800">How Receipts Work</p>
+                      <p className="text-sm text-indigo-700 mt-1">
+                        After a customer pays via QR code, they can submit their payment screenshot as a receipt. 
+                        You can verify and approve these receipts from this section.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Product Catalog</h2>
-            <span className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold">
+        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900">Product Catalog</h2>
+            <span className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold w-fit">
               {products.length} items
             </span>
           </div>
 
           {products.length === 0 ? (
-            <div className="text-center py-16">
-              <span className="text-6xl block mb-4">📦</span>
+            <div className="text-center py-12 md:py-16">
+              <span className="text-5xl md:text-6xl block mb-4">📦</span>
               <p className="text-slate-500 font-medium">No products yet. Add your first product above!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group"
+                  className="bg-white border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group"
                 >
-                  <div className="relative h-48 bg-slate-100">
+                  <div className="relative h-40 md:h-48 bg-slate-100">
                     <Image
                       src={product.image}
                       alt={product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 right-3 bg-emerald-600 text-white px-3 py-1 rounded-full font-bold text-sm shadow-lg">
+                    <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-emerald-600 text-white px-2 md:px-3 py-1 rounded-full font-bold text-xs md:text-sm shadow-lg">
                       {formatCurrency(product.price)}
                     </div>
                   </div>
-                  <div className="p-5">
-                    <h3 className="font-bold text-slate-900 truncate">{product.name}</h3>
-                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                  <div className="p-4 md:p-5">
+                    <h3 className="font-bold text-slate-900 truncate text-sm md:text-base">{product.name}</h3>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mt-3 md:mt-4 pt-3 md:pt-4 border-t border-slate-100">
                       <span className="text-xs font-semibold text-slate-400">{product.vendor || 'Sensey'}</span>
                       <button
                         onClick={() => handleRemoveProduct(product.id)}
