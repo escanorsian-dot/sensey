@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
-import { isSupabaseConfigured } from '../../lib/supabase';
 
 export default function AdminPage() {
   const { products, addProduct, removeProduct, error, isFirebaseEnabled, isLoading } = useProducts();
@@ -52,14 +51,10 @@ export default function AdminPage() {
     try {
       let imageUrls: string[] = [];
       
-      if (isSupabaseConfigured) {
-        console.log('Uploading images to Supabase...');
-        const ownerId = user?.uid || 'admin-local';
-        const uploadPromises = selectedFiles.map(file => uploadProductImage(file, ownerId));
-        imageUrls = await Promise.all(uploadPromises);
-      } else {
-        imageUrls = selectedFiles.map((_, i) => `https://picsum.photos/600/400?random=${Date.now() + i}`);
-      }
+      console.log('Uploading images to Cloudinary...');
+      const ownerId = user?.uid || 'admin-local';
+      const uploadPromises = selectedFiles.map(file => uploadProductImage(file, ownerId));
+      imageUrls = await Promise.all(uploadPromises);
 
       await addProduct({
         name: formData.name,

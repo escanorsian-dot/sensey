@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
-import { isSupabaseConfigured } from '../../lib/supabase';
+
 
 export default function VendorPage() {
   const { addProduct, error, isFirebaseEnabled, isLoading } = useProducts();
@@ -51,16 +51,10 @@ export default function VendorPage() {
     try {
       let imageUrls: string[] = [];
       
-      if (isSupabaseConfigured) {
-        console.log('Uploading images to Supabase...');
-        // If user is not logged in but we want to allow local saving, we use a fallback ID
-        const ownerId = user?.uid || 'anonymous-local';
-        const uploadPromises = selectedFiles.map(file => uploadProductImage(file, ownerId));
-        imageUrls = await Promise.all(uploadPromises);
-      } else {
-        // Fallback to placeholder if Supabase isn't ready
-        imageUrls = selectedFiles.map((_, i) => `https://picsum.photos/600/400?random=${i}`);
-      }
+      console.log('Uploading images to Cloudinary...');
+      const ownerId = user?.uid || 'anonymous-local';
+      const uploadPromises = selectedFiles.map(file => uploadProductImage(file, ownerId));
+      imageUrls = await Promise.all(uploadPromises);
 
       await addProduct({
         name: formData.name,
