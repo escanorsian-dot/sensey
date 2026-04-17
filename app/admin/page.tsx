@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
@@ -13,6 +14,7 @@ function formatCurrency(amount: number) {
 export default function AdminPage() {
   const { products, addProduct, removeProduct, error } = useProducts();
   const { user } = useAuth();
+  const router = useRouter();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -25,6 +27,7 @@ export default function AdminPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts'>('products');
+  const [mobileTabOpen, setMobileTabOpen] = useState(false);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -140,52 +143,63 @@ export default function AdminPage() {
     }
   };
 
+  const tabLabels = {
+    products: { icon: '📦', label: 'Products' },
+    payments: { icon: '💳', label: 'Payments' },
+    receipts: { icon: '📋', label: `Receipts${receipts.length > 0 ? ` (${receipts.length})` : ''}` },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
-              <p className="text-slate-500 font-medium mt-1">Manage your inventory & payments</p>
-            </div>
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-semibold text-slate-600">Live</span>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button 
+          onClick={() => router.push('/')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold transition-all hover:-translate-x-1"
+        >
+          <span className="text-xl">←</span> Back to Store
+        </button>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Admin Dashboard</h1>
+            <p className="text-gray-500 font-medium mt-1">Manage your inventory & payments</p>
+          </div>
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-semibold text-gray-600">Live</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10">
-          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white hover-lift animate-slide-up">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-indigo-200 text-xs md:text-sm font-medium">Total Products</p>
                 <p className="text-3xl md:text-4xl font-black mt-2">{totalInventory}</p>
               </div>
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center animate-float">
                 <span className="text-2xl md:text-3xl">📦</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
+          <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white hover-lift animate-slide-up" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-emerald-200 text-xs md:text-sm font-medium">Avg. Price</p>
-                <p className="text-3xl md:text-4xl font-black mt-2">{formatCurrency(avgPrice)}</p>
+                <p className="text-2xl md:text-3xl font-black mt-2 truncate">{formatCurrency(avgPrice)}</p>
               </div>
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center animate-float" style={{ animationDelay: '200ms' }}>
                 <span className="text-2xl md:text-3xl">💰</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-xl text-white hover-lift animate-slide-up" style={{ animationDelay: '200ms' }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-amber-100 text-xs md:text-sm font-medium">Payment Status</p>
-                <p className="text-xl md:text-2xl font-black mt-2">{paymentQR ? 'Active' : 'Setup Needed'}</p>
+                <p className="text-lg md:text-xl font-black mt-2">{paymentQR ? 'Active' : 'Setup Needed'}</p>
               </div>
               <div className="w-12 h-12 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center">
                 <span className="text-2xl md:text-3xl">{paymentQR ? '✅' : '⚠️'}</span>
@@ -194,11 +208,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-8 md:mb-10">
-          <div className="flex border-b border-slate-100 overflow-x-auto">
+        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-8">
+          <div className="hidden md:flex border-b border-slate-100">
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
                 activeTab === 'products'
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-500 hover:bg-slate-50'
@@ -208,7 +222,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('payments')}
-              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
                 activeTab === 'payments'
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-500 hover:bg-slate-50'
@@ -218,7 +232,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('receipts')}
-              className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-xs md:text-sm font-bold transition-all whitespace-nowrap ${
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
                 activeTab === 'receipts'
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-500 hover:bg-slate-50'
@@ -228,13 +242,43 @@ export default function AdminPage() {
             </button>
           </div>
 
+          <div className="md:hidden">
+            <button
+              onClick={() => setMobileTabOpen(!mobileTabOpen)}
+              className="w-full px-6 py-4 flex items-center justify-between font-bold text-gray-900 bg-slate-50"
+            >
+              <span>{tabLabels[activeTab].icon} {tabLabels[activeTab].label}</span>
+              <span className={`text-xl transition-transform ${mobileTabOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {mobileTabOpen && (
+              <div className="border-t border-slate-100 bg-white">
+                {(['products', 'payments', 'receipts'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      setMobileTabOpen(false);
+                    }}
+                    className={`w-full px-6 py-4 text-left font-bold transition-all ${
+                      activeTab === tab
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tabLabels[tab].icon} {tabLabels[tab].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="p-6 md:p-8">
             {activeTab === 'products' && (
-              <div className="space-y-8">
-                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Add New Product</h2>
+              <div className="space-y-8 animate-fade-in">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Add New Product</h2>
 
                 {(submitError || error) && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl md:rounded-2xl px-6 py-4 font-semibold flex items-center gap-3">
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl md:rounded-2xl px-6 py-4 font-semibold flex items-center gap-3 animate-slide-up">
                     <span className="text-xl">❌</span>
                     {submitError || error}
                   </div>
@@ -243,20 +287,20 @@ export default function AdminPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Product Name *</label>
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Product Name *</label>
                       <input
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-gray-300 text-gray-900"
                         placeholder="Enter product name"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Price (₹) *</label>
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Price (₹) *</label>
                       <input
                         type="number"
                         name="price"
@@ -265,34 +309,34 @@ export default function AdminPage() {
                         required
                         min="0"
                         step="0.01"
-                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-gray-300 text-gray-900"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Description *</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Description *</label>
                     <textarea
                       name="description"
                       value={formData.description}
                       onChange={handleChange}
                       required
                       rows={3}
-                      className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
+                      className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-gray-300 text-gray-900"
                       placeholder="Describe the product..."
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Brand / Vendor</label>
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Brand / Vendor</label>
                       <input
                         type="text"
                         name="vendor"
                         value={formData.vendor}
                         onChange={handleChange}
-                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-slate-300 text-slate-900"
+                        className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-semibold placeholder:text-gray-300 text-gray-900"
                         placeholder="Brand name"
                       />
                     </div>
@@ -308,7 +352,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">Product Images (Max 4)</label>
+                    <label className="block text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Product Images (Max 4)</label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                       {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="relative">
@@ -321,8 +365,8 @@ export default function AdminPage() {
                           />
                           <label
                             htmlFor={`admin-file-${i}`}
-                            className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all ${
-                              imageFiles[i] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50'
+                            className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all hover-lift ${
+                              imageFiles[i] ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-indigo-500 hover:bg-indigo-50'
                             }`}
                           >
                             {imageFiles[i] ? (
@@ -333,7 +377,7 @@ export default function AdminPage() {
                             ) : (
                               <div className="text-center">
                                 <span className="text-xl md:text-2xl block">📸</span>
-                                <p className="text-[10px] font-bold text-slate-400 mt-1">{i === 0 ? 'Primary' : `Image ${i + 1}`}</p>
+                                <p className="text-[10px] font-bold text-gray-400 mt-1">{i === 0 ? 'Primary' : `Image ${i + 1}`}</p>
                               </div>
                             )}
                           </label>
@@ -346,10 +390,10 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'payments' && (
-              <div className="space-y-6 md:space-y-8">
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-slate-900">Payment QR Code</h2>
-                  <p className="text-slate-500 mt-1">Upload your UPI QR code for customer payments</p>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">Payment QR Code</h2>
+                  <p className="text-gray-500 mt-1">Upload your UPI QR code for customer payments</p>
                 </div>
 
                 {qrMessage && (
@@ -363,7 +407,7 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                   <div className="bg-slate-50 rounded-2xl md:rounded-3xl p-6 md:p-8 border-2 border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 md:mb-6">Current QR Code</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 md:mb-6">Current QR Code</h3>
                     {paymentQR ? (
                       <div className="space-y-4">
                         <div className="relative aspect-square bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-200">
@@ -379,7 +423,7 @@ export default function AdminPage() {
                             localStorage.removeItem('sensey_payment_qr');
                             setPaymentQR(null);
                           }}
-                          className="w-full py-2 md:py-3 bg-rose-100 text-rose-700 rounded-lg md:rounded-xl font-bold hover:bg-rose-200 transition-all"
+                          className="w-full py-2 md:py-3 bg-rose-100 text-rose-700 rounded-lg md:rounded-xl font-bold hover:bg-rose-200 transition-all hover:scale-105 active:scale-95"
                         >
                           🗑️ Remove QR Code
                         </button>
@@ -396,7 +440,7 @@ export default function AdminPage() {
 
                   <div className="space-y-4 md:space-y-6">
                     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-indigo-100">
-                      <h3 className="text-lg font-bold text-slate-900 mb-4">Upload New QR Code</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Upload New QR Code</h3>
                       <div className="space-y-4">
                         <input
                           type="file"
@@ -407,12 +451,12 @@ export default function AdminPage() {
                         />
                         <label
                           htmlFor="qr-upload"
-                          className={`flex items-center justify-center gap-3 p-4 md:p-6 border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all ${
+                          className={`flex items-center justify-center gap-3 p-4 md:p-6 border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all hover-lift ${
                             qrFile ? 'border-emerald-500 bg-emerald-50' : 'border-indigo-300 hover:border-indigo-500 hover:bg-white'
                           }`}
                         >
                           <span className="text-xl md:text-2xl">{qrFile ? '✅' : '📤'}</span>
-                          <span className="font-semibold text-slate-700 text-sm md:text-base">
+                          <span className="font-semibold text-gray-700 text-sm md:text-base">
                             {qrFile ? qrFile.name : 'Click to select QR image'}
                           </span>
                         </label>
@@ -444,24 +488,28 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'receipts' && (
-              <div className="space-y-6 md:space-y-8">
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-slate-900">Payment Receipts</h2>
-                  <p className="text-slate-500 mt-1">View and manage customer payment receipts</p>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">Payment Receipts</h2>
+                  <p className="text-gray-500 mt-1">View and manage customer payment receipts</p>
                 </div>
 
                 {receipts.length === 0 ? (
                   <div className="text-center py-12 md:py-16 bg-slate-50 rounded-2xl md:rounded-3xl border-2 border-dashed border-slate-200">
                     <span className="text-5xl md:text-6xl block mb-4">📋</span>
-                    <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2">No receipts yet</h3>
-                    <p className="text-slate-500 max-w-md mx-auto text-sm md:text-base px-4">
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">No receipts yet</h3>
+                    <p className="text-gray-500 max-w-md mx-auto text-sm md:text-base px-4">
                       When customers submit their payment receipts after checkout, they will appear here for verification.
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {receipts.map((receipt) => (
-                      <div key={receipt.id} className="bg-white border border-slate-200 rounded-xl md:rounded-2xl overflow-hidden shadow-md">
+                    {receipts.map((receipt, index) => (
+                      <div 
+                        key={receipt.id} 
+                        className="bg-white border border-slate-200 rounded-xl md:rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all animate-slide-up"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
                         <div className="relative aspect-[4/3] bg-slate-100">
                           <Image
                             src={receipt.imageUrl}
@@ -471,11 +519,11 @@ export default function AdminPage() {
                           />
                         </div>
                         <div className="p-4">
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-gray-500">
                             Submitted: {new Date(receipt.timestamp).toLocaleString('en-IN')}
                           </p>
                           <div className="flex gap-2 mt-3">
-                            <button className="flex-1 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-sm hover:bg-emerald-200 transition-all">
+                            <button className="flex-1 py-2 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-sm hover:bg-emerald-200 transition-all hover:scale-105 active:scale-95">
                               ✓ Verify
                             </button>
                             <button 
@@ -484,7 +532,7 @@ export default function AdminPage() {
                                 setReceipts(updated);
                                 localStorage.setItem('sensey_receipts', JSON.stringify(updated));
                               }}
-                              className="py-2 px-3 bg-rose-100 text-rose-700 rounded-lg font-bold text-sm hover:bg-rose-200 transition-all"
+                              className="py-2 px-3 bg-rose-100 text-rose-700 rounded-lg font-bold text-sm hover:bg-rose-200 transition-all hover:scale-105 active:scale-95"
                             >
                               🗑️
                             </button>
@@ -514,7 +562,7 @@ export default function AdminPage() {
 
         <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900">Product Catalog</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Product Catalog</h2>
             <span className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold w-fit">
               {products.length} items
             </span>
@@ -523,16 +571,17 @@ export default function AdminPage() {
           {products.length === 0 ? (
             <div className="text-center py-12 md:py-16">
               <span className="text-5xl md:text-6xl block mb-4">📦</span>
-              <p className="text-slate-500 font-medium">No products yet. Add your first product above!</p>
+              <p className="text-gray-500 font-medium">No products yet. Add your first product above!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {products.map((product) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 stagger-grid">
+              {products.map((product, index) => (
                 <div
                   key={product.id}
                   className="bg-white border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all group"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <div className="relative h-40 md:h-48 bg-slate-100">
+                  <div className="relative h-40 md:h-48 bg-slate-100 overflow-hidden">
                     <Image
                       src={product.image}
                       alt={product.name}
@@ -544,13 +593,13 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="p-4 md:p-5">
-                    <h3 className="font-bold text-slate-900 truncate text-sm md:text-base">{product.name}</h3>
-                    <p className="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2">{product.description}</p>
+                    <h3 className="font-bold text-gray-900 truncate text-sm md:text-base">{product.name}</h3>
+                    <p className="text-xs md:text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
                     <div className="flex items-center justify-between mt-3 md:mt-4 pt-3 md:pt-4 border-t border-slate-100">
-                      <span className="text-xs font-semibold text-slate-400">{product.vendor || 'Sensey'}</span>
+                      <span className="text-xs font-semibold text-gray-400">{product.vendor || 'Sensey'}</span>
                       <button
                         onClick={() => handleRemoveProduct(product.id)}
-                        className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors"
+                        className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors hover:scale-110"
                       >
                         🗑️ Delete
                       </button>
