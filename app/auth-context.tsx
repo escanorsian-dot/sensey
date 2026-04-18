@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { getDB } from '@/lib/firebase';
+import { getDB, isBrowser } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 
 interface User {
@@ -42,26 +42,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [lastRead, setLastRead] = useState<number>(0);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!isBrowser()) return;
     loadUserFromStorage();
     loadSupportMessages();
   }, []);
 
   const loadUserFromStorage = () => {
-    const stored = localStorage.getItem('sensey_user');
-    if (stored) {
-      try {
+    try {
+      const stored = localStorage.getItem('sensey_user');
+      if (stored) {
         const userData = JSON.parse(stored);
         if (userData.isLoggedIn) {
           setUser({ username: userData.username, role: userData.role });
         }
-      } catch (e) {
-        console.error('Error parsing user data:', e);
       }
+    } catch (e) {
+      console.error('Error parsing user data:', e);
     }
   };
 
   const loadSupportMessages = async () => {
+    if (!isBrowser()) return;
     try {
       const db = getDB();
       const messagesRef = collection(db, 'support_messages');
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (username: string, password: string): Promise<{ success: boolean; message?: string; role?: string }> => {
+    if (!isBrowser()) return { success: false, message: 'Cannot login on server' };
     try {
       const db = getDB();
       
@@ -138,12 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (!isBrowser()) return;
     localStorage.removeItem('sensey_user');
     setUser(null);
     window.location.href = '/';
   };
 
   const register = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    if (!isBrowser()) return { success: false, message: 'Cannot register on server' };
     try {
       const db = getDB();
       const usersRef = collection(db, 'users');
@@ -167,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const sendMessage = async (message: string) => {
+    if (!isBrowser()) return;
     try {
       const db = getDB();
       const messagesRef = collection(db, 'support_messages');
@@ -185,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const adminReply = async (messageId: string, reply: string) => {
+    if (!isBrowser()) return;
     try {
       const db = getDB();
       await updateDoc(doc(db, 'support_messages', messageId), {
@@ -208,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const markAsRead = () => {
+    if (!isBrowser()) return;
     setLastRead(Date.now());
     localStorage.setItem('sensey_support_last_read', Date.now().toString());
   };

@@ -12,23 +12,27 @@ const firebaseConfig = {
 
 let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
+let initialized = false;
 
 export function getFirebaseApp(): FirebaseApp {
-  if (typeof window === 'undefined') {
-    return {} as FirebaseApp;
+  if (!initialized) {
+    initialized = true;
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
   }
-  if (!app) {
-    app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
-  }
-  return app;
+  return app!;
 }
 
 export function getDB(): Firestore {
-  if (typeof window === 'undefined') {
-    return {} as Firestore;
-  }
   if (!db) {
     db = getFirestore(getFirebaseApp());
   }
   return db;
+}
+
+export function isBrowser(): boolean {
+  return typeof window !== 'undefined';
 }
