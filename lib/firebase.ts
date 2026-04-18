@@ -17,10 +17,25 @@ let initialized = false;
 export function getFirebaseApp(): FirebaseApp {
   if (!initialized) {
     initialized = true;
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApps()[0];
+    
+    const missingKeys = Object.entries(firebaseConfig)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingKeys.length > 0 && typeof window !== 'undefined') {
+      console.warn('[FIREBASE] Missing configuration keys:', missingKeys.join(', '));
+    }
+
+    try {
+      if (getApps().length === 0) {
+        app = initializeApp(firebaseConfig);
+      } else {
+        app = getApps()[0];
+      }
+    } catch (err) {
+      console.error('[FIREBASE] Initialization error:', err);
+      // Fallback to avoid immediate crash
+      app = undefined;
     }
   }
   return app!;
@@ -28,7 +43,11 @@ export function getFirebaseApp(): FirebaseApp {
 
 export function getDB(): Firestore {
   if (!db) {
-    db = getFirestore(getFirebaseApp());
+    const firebaseApp = getFirebaseApp();
+    if (!firebaseApp) {
+      throw new Error('Firebase app not initialized. Check your environment variables.');
+    }
+    db = getFirestore(firebaseApp);
   }
   return db;
 }

@@ -21,15 +21,17 @@ async function ensureDefaultAdmin() {
     }
   } catch (err) {
     console.error('[INIT] Error ensuring default admin:', err);
-    // Don't throw here, allow the login to proceed if possible
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    // Basic check for Firebase config
+    // Check for Firebase config early
     if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-      console.error('[ERROR] Firebase Project ID is missing from environment variables');
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Firebase Configuration Missing. Please set environment variables.' 
+      }, { status: 500 });
     }
 
     await ensureDefaultAdmin();
@@ -38,7 +40,6 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch (parseError) {
-      console.error('[ERROR] Failed to parse request body:', parseError);
       return NextResponse.json({ success: false, message: 'Invalid request body' }, { status: 400 });
     }
 
@@ -50,15 +51,16 @@ export async function POST(req: NextRequest) {
 
     console.log('[LOGIN] Attempting admin login for:', username);
     const db = getDB();
-    const adminDoc = await getDoc(doc(db, 'admins', username));
+    const adminRef = doc(db, 'admins', username);
+    const adminDoc = await getDoc(adminRef);
     
     if (adminDoc.exists()) {
       const adminData = adminDoc.data();
-      if (adminData.password === password) {
+      if (adminData && adminData.password === password) {
         console.log('[LOGIN] Admin login successful:', username);
         return NextResponse.json({ 
           success: true, 
-          user: { username: adminData.username, role: 'admin' }
+          user: { username: adminData.username || username, role: 'admin' }
         });
       } else {
         console.warn('[LOGIN] Password mismatch for:', username);
@@ -69,11 +71,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
   } catch (error: any) {
-    console.error('[ERROR] Admin login failed with exception:', error);
+    console.error('[ERROR] Admin login failed:', error);
     return NextResponse.json({ 
       success: false, 
       message: error.message || 'Login failed',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   }
 }

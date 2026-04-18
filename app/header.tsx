@@ -27,7 +27,7 @@ export default function Header() {
     { href: '/vendor', label: 'Sell' },
   ];
 
-  const userMessages = supportMessages.filter(msg => msg.username === user?.username);
+  const userMessages = (supportMessages || []).filter(msg => msg.username === user?.username);
   const hasUnreadReplies = userMessages.some(msg => msg.reply && msg.timestamp > lastRead);
 
   const handleSupportSubmit = (e: React.FormEvent) => {
