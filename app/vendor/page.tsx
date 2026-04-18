@@ -13,16 +13,24 @@ export default function VendorPage() {
   const [isChecking, setIsChecking] = useState(true);
   
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const timer = setTimeout(() => {
-      if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
-        router.push('/login');
+      const stored = localStorage.getItem('sensey_user');
+      if (!stored) {
+        window.location.href = '/login';
+        return;
+      }
+      const userData = JSON.parse(stored);
+      if (!userData.isLoggedIn || (userData.role !== 'vendor' && userData.role !== 'admin')) {
+        window.location.href = '/login';
       } else {
         setIsChecking(false);
       }
-    }, 500);
+    }, 100);
     
     return () => clearTimeout(timer);
-  }, [isLoggedIn, user, router]);
+  }, []);
 
   if (isChecking) {
     return (

@@ -7,55 +7,22 @@ import { useAuth } from '../../auth-context';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { isLoggedIn, user } = useAuth();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const [isChecking, setIsChecking] = useState(true);
-
-  useEffect(() => {
-    if (isLoggedIn && user?.role === 'admin') {
-      router.replace('/admin');
-    } else {
-      setIsChecking(false);
-    }
-  }, [isLoggedIn, user, router]);
-
-  if (isChecking) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg font-semibold">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/admin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'admin', isLoggedIn: true }));
-        window.location.replace('/admin');
-      } else {
-        setError(data.message || 'Invalid credentials');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Login failed. Please try again.');
+    const result = await login(formData.username, formData.password);
+    if (result.success && result.role === 'admin') {
+      window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: 'admin', isLoggedIn: true }));
+      window.location.href = '/admin';
+    } else {
+      setError(result.message || 'Invalid credentials');
     }
 
     setIsLoading(false);
