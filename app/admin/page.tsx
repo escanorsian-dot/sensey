@@ -11,11 +11,55 @@ function formatCurrency(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function ReplyForm({ messageId, onReply }: { messageId: string; onReply: (id: string, reply: string) => Promise<void> }) {
+  const [reply, setReply] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reply.trim()) return;
+    
+    setIsSending(true);
+    await onReply(messageId, reply);
+    setReply('');
+    setIsSending(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <input
+        type="text"
+        value={reply}
+        onChange={(e) => setReply(e.target.value)}
+        placeholder="Type your response..."
+        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+      />
+      <button
+        type="submit"
+        disabled={!reply.trim() || isSending}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {isSending ? 'Sending...' : 'Send Reply'}
+      </button>
+    </form>
+  );
+}
+
 export default function AdminPage() {
   const { products, addProduct, removeProduct, error } = useProducts();
-  const { user } = useAuth();
+  const { user, isLoggedIn, supportMessages, adminReply, markAsRead, unreadCount } = useAuth();
   const router = useRouter();
   
+  useEffect(() => {
+    if (!isLoggedIn || user?.role !== 'admin') {
+      router.push('/login');
+    }
+  }, [isLoggedIn, user, router]);
+
+  if (!isLoggedIn || user?.role !== 'admin') {
+    return null;
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -26,7 +70,7 @@ export default function AdminPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs' | 'support'>('products');
   const [mobileTabOpen, setMobileTabOpen] = useState(false);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
@@ -223,7 +267,14 @@ const loadUTRs = async () => {
     payments: { icon: '💳', label: 'Payments' },
     receipts: { icon: '📋', label: `Receipts${receipts.length > 0 ? ` (${receipts.length})` : ''}` },
     utrs: { icon: '🔑', label: `UTRs${validUTRs.length > 0 ? ` (${validUTRs.length})` : ''}` },
+    support: { icon: '💬', label: `Support${unreadCount > 0 ? ` (${unreadCount} new)` : ''}` },
   };
+
+  useEffect(() => {
+    if (activeTab === 'support') {
+      markAsRead();
+    }
+  }, [activeTab, markAsRead]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
@@ -325,6 +376,16 @@ const loadUTRs = async () => {
               }`}
             >
               🔑 UTRs {validUTRs.length > 0 && `(${validUTRs.length})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('support')}
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
+                activeTab === 'support'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              💬 Support {unreadCount > 0 && `(${unreadCount})`}
             </button>
           </div>
 
@@ -741,6 +802,46 @@ const loadUTRs = async () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'support' && (
+              <div className="space-y-6 animate-fade-in">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">Support Messages</h2>
+                  <p className="text-gray-500 mt-1">View and respond to customer inquiries</p>
+                </div>
+
+                {supportMessages.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <span className="text-5xl block mb-4">💬</span>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No messages yet</h3>
+                    <p className="text-gray-500">Customer messages will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {supportMessages.map((msg) => (
+                      <div key={msg.id} className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-md">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-bold text-gray-900">{msg.username}</p>
+                            <p className="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-700 mb-4">{msg.message}</p>
+                        
+                        {msg.reply ? (
+                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                            <p className="text-xs font-bold text-emerald-700 mb-1">Your Response:</p>
+                            <p className="text-sm text-emerald-800">{msg.reply}</p>
+                          </div>
+                        ) : (
+                          <ReplyForm messageId={msg.id} onReply={adminReply} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
