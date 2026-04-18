@@ -19,6 +19,8 @@ interface SupportMessage {
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
+  isLoading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (username: string, password: string) => Promise<boolean>;
