@@ -36,6 +36,7 @@ export default function LoginPage() {
     if (isLogin) {
       const result = await login(formData.username, formData.password);
       if (result.success) {
+        window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: result.role, isLoggedIn: true }));
         window.location.href = result.role === 'admin' ? '/admin' : result.role === 'vendor' ? '/vendor' : '/';
       } else {
         setError(result.message || 'Invalid credentials');
@@ -43,6 +44,7 @@ export default function LoginPage() {
     } else {
       const result = await register(formData.username, formData.password);
       if (result.success) {
+        window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: 'user', isLoggedIn: true }));
         window.location.href = '/';
       } else {
         setError(result.message || 'Registration failed');

@@ -10,7 +10,7 @@ export default function VendorLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -26,7 +26,7 @@ export default function VendorLoginPage() {
 
       if (res.ok && data.success) {
         window.localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'vendor', isLoggedIn: true }));
-        router.push('/vendor');
+        window.location.href = '/vendor';
       } else {
         setError(data.message || 'Invalid credentials');
       }
