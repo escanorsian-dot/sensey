@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+async function ensureDefaultAdmin() {
+  const db = getDB();
+  const adminRef = doc(db, 'admins', 'qwertyu');
+  const existing = await getDoc(adminRef);
+  
+  if (!existing.exists()) {
+    await setDoc(adminRef, {
+      username: 'qwertyu',
+      password: 'qwertyu',
+      createdAt: new Date()
+    });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureDefaultAdmin();
+    
     const { username, password } = await req.json();
 
     if (!username || !password) {
@@ -19,17 +35,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           user: { username: adminData.username, role: 'admin' }
-        });
-      }
-    }
-
-    const defaultAdmin = await getDoc(doc(db, 'admins', 'qwertyu'));
-    if (defaultAdmin.exists()) {
-      const defaultData = defaultAdmin.data();
-      if (username === defaultData.username && defaultData.password === password) {
-        return NextResponse.json({ 
-          success: true, 
-          user: { username: defaultData.username, role: 'admin' }
         });
       }
     }

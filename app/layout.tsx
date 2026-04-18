@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import Header from "./header";
+import InitAdmin from "./components/init-admin";
 
 export const metadata: Metadata = {
   title: "Sensey - Your Product Store",
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <Providers>
+          <InitAdmin />
           <Header />
           <main className="flex-1 page-enter">
             {children}
