@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
-import ImageCropperModal from '../components/image-cropper';
 
 function formatCurrency(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,10 +28,6 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs'>('products');
   const [mobileTabOpen, setMobileTabOpen] = useState(false);
-
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [cropperImageIndex, setCropperImageIndex] = useState<number | null>(null);
-  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -168,26 +163,9 @@ const loadUTRs = async () => {
   };
 
   const handleFileChange = (index: number, file: File | null) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCropperImageSrc(e.target?.result as string);
-        setCropperImageIndex(index);
-        setCropperOpen(true);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCropComplete = (croppedFile: File) => {
-    if (cropperImageIndex !== null) {
-      const newFiles = [...imageFiles];
-      newFiles[cropperImageIndex] = croppedFile;
-      setImageFiles(newFiles);
-    }
-    setCropperOpen(false);
-    setCropperImageIndex(null);
-    setCropperImageSrc(null);
+    const newFiles = [...imageFiles];
+    newFiles[index] = file;
+    setImageFiles(newFiles);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -459,40 +437,41 @@ const loadUTRs = async () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Product Images (Max 4)</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                      {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className="relative">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileChange(i, e.target.files?.[0] ?? null)}
-                            className="hidden"
-                            id={`admin-file-${i}`}
-                          />
-                          <label
-                            htmlFor={`admin-file-${i}`}
-                            className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all hover-lift ${
-                              imageFiles[i] ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-indigo-500 hover:bg-indigo-50'
-                            }`}
-                          >
-                            {imageFiles[i] ? (
-                              <div className="text-center p-2">
-                                <span className="text-xl md:text-2xl block">✅</span>
-                                <p className="text-[10px] font-bold text-emerald-700 truncate max-w-[80px] mt-1">Ready</p>
-                              </div>
-                            ) : (
-                              <div className="text-center">
-                                <span className="text-xl md:text-2xl block">📸</span>
-                                <p className="text-[10px] font-bold text-gray-400 mt-1">{i === 0 ? 'Primary' : `Image ${i + 1}`}</p>
-                              </div>
-                            )}
-                          </label>
-                        </div>
-                      ))}
+<div>
+                      <label className="block text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Product Images (Max 4)</label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileChange(i, e.target.files?.[0] ?? null)}
+                              className="hidden"
+                              id={`admin-file-${i}`}
+                            />
+                            <label
+                              htmlFor={`admin-file-${i}`}
+                              className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl md:rounded-2xl cursor-pointer transition-all hover-lift ${
+                                imageFiles[i] ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-indigo-500 hover:bg-indigo-50'
+                              }`}
+                            >
+                              {imageFiles[i] ? (
+                                <div className="text-center p-2">
+                                  <span className="text-xl md:text-2xl block">✅</span>
+                                  <p className="text-[10px] font-bold text-emerald-700 truncate max-w-[80px] mt-1">Ready</p>
+                                </div>
+                              ) : (
+                                <div className="text-center">
+                                  <span className="text-xl md:text-2xl block">📸</span>
+                                  <p className="text-[10px] font-bold text-gray-400 mt-1">{i === 0 ? 'Primary' : `Image ${i + 1}`}</p>
+                                </div>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Tip: Use square images (1:1 ratio) for best display</p>
                     </div>
-                  </div>
                 </form>
               </div>
             )}
@@ -817,18 +796,6 @@ const loadUTRs = async () => {
             </div>
           )}
         </div>
-
-        {cropperOpen && cropperImageSrc && (
-          <ImageCropperModal
-            imageSrc={cropperImageSrc}
-            onCrop={handleCropComplete}
-            onCancel={() => {
-              setCropperOpen(false);
-              setCropperImageIndex(null);
-              setCropperImageSrc(null);
-            }}
-          />
-        )}
       </div>
     </div>
   );

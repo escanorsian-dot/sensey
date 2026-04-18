@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
-import ImageCropperModal from '../components/image-cropper';
 
 export default function VendorPage() {
   const router = useRouter();
@@ -22,36 +21,15 @@ export default function VendorPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [cropperImageIndex, setCropperImageIndex] = useState<number | null>(null);
-  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleFileChange = (index: number, file: File | null) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCropperImageSrc(e.target?.result as string);
-        setCropperImageIndex(index);
-        setCropperOpen(true);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCropComplete = (croppedFile: File) => {
-    if (cropperImageIndex !== null) {
-      const newFiles = [...imageFiles];
-      newFiles[cropperImageIndex] = croppedFile;
-      setImageFiles(newFiles);
-    }
-    setCropperOpen(false);
-    setCropperImageIndex(null);
-    setCropperImageSrc(null);
+    const newFiles = [...imageFiles];
+    newFiles[index] = file;
+    setImageFiles(newFiles);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -230,22 +208,10 @@ export default function VendorPage() {
             </div>
             <div>
               <p className="font-bold text-gray-900 mb-1">Tips for better sales</p>
-              <p className="text-sm text-gray-500">Use high-quality images and detailed descriptions to attract more buyers!</p>
+              <p className="text-sm text-gray-500">Use high-quality images with 1:1 square ratio (e.g., 500x500) for best display results!</p>
             </div>
           </div>
         </div>
-
-        {cropperOpen && cropperImageSrc && (
-          <ImageCropperModal
-            imageSrc={cropperImageSrc}
-            onCrop={handleCropComplete}
-            onCancel={() => {
-              setCropperOpen(false);
-              setCropperImageIndex(null);
-              setCropperImageSrc(null);
-            }}
-          />
-        )}
       </div>
     </div>
   );
