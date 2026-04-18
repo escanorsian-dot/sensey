@@ -3,22 +3,35 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../../auth-context';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { isLoggedIn, user } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isChecking, setIsChecking] = useState(true);
+
   useEffect(() => {
-    const stored = localStorage.getItem('sensey_user');
-    if (stored) {
-      const userData = JSON.parse(stored);
-      if (userData.isLoggedIn && userData.role === 'admin') {
-        router.push('/admin');
-      }
+    if (isLoggedIn && user?.role === 'admin') {
+      router.replace('/admin');
+    } else {
+      setIsChecking(false);
     }
-  }, [router]);
+  }, [isLoggedIn, user, router]);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-semibold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
