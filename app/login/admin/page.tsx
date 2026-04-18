@@ -25,11 +25,13 @@ export default function AdminLoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        window.localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'admin', isLoggedIn: true }));
         router.push('/admin');
       } else {
         setError(data.message || 'Invalid credentials');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Login failed. Please try again.');
     }
 
