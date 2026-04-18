@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { getDB, isBrowser } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 
@@ -32,6 +32,7 @@ interface AuthContextType {
   deleteMessage: (messageId: string) => Promise<void>;
   markAsRead: () => void;
   unreadCount: number;
+  refreshUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,27 +42,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supportMessages, setSupportMessages] = useState<SupportMessage[]>([]);
   const [lastRead, setLastRead] = useState<number>(0);
 
-  useEffect(() => {
+  const loadUserFromStorage = useCallback(() => {
     if (!isBrowser()) return;
-    loadUserFromStorage();
-    loadSupportMessages();
-  }, []);
-
-  const loadUserFromStorage = () => {
     try {
       const stored = localStorage.getItem('sensey_user');
       if (stored) {
         const userData = JSON.parse(stored);
-        if (userData.isLoggedIn) {
+        if (userData && userData.isLoggedIn) {
           setUser({ username: userData.username, role: userData.role });
+          return;
         }
       }
+      setUser(null);
     } catch (e) {
       console.error('Error parsing user data:', e);
+      setUser(null);
     }
-  };
+  }, []);
 
-  const loadSupportMessages = async () => {
+  const loadSupportMessages = useCallback(async () => {
     if (!isBrowser()) return;
     try {
       const db = getDB();
@@ -89,7 +88,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Failed to load messages:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserFromStorage();
+    loadSupportMessages();
+
+    if (isBrowser()) {
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'sensey_user') {
+          loadUserFromStorage();
+        }
+      };
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }
+  }, [loadUserFromStorage, loadSupportMessages]);
 
   const login = async (username: string, password: string): Promise<{ success: boolean; message?: string; role?: string }> => {
     if (!isBrowser()) return { success: false, message: 'Cannot login on server' };
@@ -98,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const adminDoc = await getDoc(doc(db, 'admins', username));
       if (adminDoc.exists() && adminDoc.data().password === password) {
-        const userData = { username, role: 'admin', isLoggedIn: true };
+        const userData = { username, role: 'admin' as const, isLoggedIn: true };
         localStorage.setItem('sensey_user', JSON.stringify(userData));
         setUser({ username, role: 'admin' });
         return { success: true, role: 'admin' };
@@ -111,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!vendorSnapshot.empty) {
         const vendorData = vendorSnapshot.docs[0].data();
         if (vendorData.password === password) {
-          const userData = { username, role: 'vendor', isLoggedIn: true };
+          const userData = { username, role: 'vendor' as const, isLoggedIn: true };
           localStorage.setItem('sensey_user', JSON.stringify(userData));
           setUser({ username, role: 'vendor' });
           return { success: true, role: 'vendor' };
@@ -125,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!userSnapshot.empty) {
         const userDataDoc = userSnapshot.docs[0].data();
         if (userDataDoc.password === password) {
-          const userData = { username, role: 'user', isLoggedIn: true };
+          const userData = { username, role: 'user' as const, isLoggedIn: true };
           localStorage.setItem('sensey_user', JSON.stringify(userData));
           setUser({ username, role: 'user' });
           return { success: true, role: 'user' };
@@ -160,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await setDoc(doc(db, 'users', username), { username, password, createdAt: new Date() });
 
-      const userData = { username, role: 'user', isLoggedIn: true };
+      const userData = { username, role: 'user' as const, isLoggedIn: true };
       localStorage.setItem('sensey_user', JSON.stringify(userData));
       setUser({ username, role: 'user' });
       return { success: true };
@@ -236,8 +250,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       deleteMessage,
       markAsRead,
       unreadCount,
+      refreshUser: loadUserFromStorage
     }),
-    [user, supportMessages, unreadCount]
+    [user, supportMessages, unreadCount, loadUserFromStorage]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth-context';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +44,8 @@ export default function LoginPage() {
             isLoggedIn: true
           }));
           
+          refreshUser();
+
           if (data.role === 'admin') {
             router.push('/admin');
           } else if (data.role === 'vendor') {
@@ -70,6 +74,7 @@ export default function LoginPage() {
             role: 'user',
             isLoggedIn: true
           }));
+          refreshUser();
           router.push('/');
         } else {
           setError(data.message || 'Registration failed');

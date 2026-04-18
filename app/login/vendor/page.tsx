@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../auth-context';
 
 export default function VendorLoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,7 @@ export default function VendorLoginPage() {
           role: 'vendor',
           isLoggedIn: true
         }));
+        refreshUser();
         router.push('/vendor');
       } else {
         setError(data.message || 'Invalid credentials');
@@ -40,6 +43,7 @@ export default function VendorLoginPage() {
       setIsLoading(false);
     }
   };
+...
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center p-4">
