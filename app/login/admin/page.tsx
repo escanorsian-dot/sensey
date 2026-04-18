@@ -41,10 +41,10 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-4xl font-black text-white">Sensey</Link>
-          <p className="text-slate-400 mt-2">Admin Portal</p>
+          <p className="text-slate-300 mt-2">Admin Portal</p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-white/20">
+        <div className="bg-slate-800/80 rounded-3xl p-6 md:p-8 border border-slate-600">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">⚙️</span>
@@ -54,31 +54,31 @@ export default function AdminLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
+              <label className="block text-sm font-semibold text-white mb-2">Username</label>
               <input
                 type="text"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                className="w-full p-3 md:p-4 bg-slate-700 border-2 border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 placeholder="Enter username"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-white mb-2">Password</label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                className="w-full p-3 md:p-4 bg-slate-700 border-2 border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 placeholder="Enter password"
               />
             </div>
 
             {error && (
-              <div className="bg-rose-500/20 border border-rose-500/50 text-rose-300 rounded-xl p-3 text-sm">
+              <div className="bg-red-500/20 border border-red-500/50 text-red-300 rounded-xl p-3 text-sm font-medium">
                 {error}
               </div>
             )}
@@ -94,7 +94,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center mt-6">
-          <Link href="/login" className="text-slate-400 hover:text-white">← Back to Main Login</Link>
+          <Link href="/login" className="text-slate-300 hover:text-white font-medium">← Back to Main Login</Link>
         </p>
       </div>
     </div>

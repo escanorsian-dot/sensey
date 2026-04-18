@@ -42,7 +42,7 @@ export default function Header() {
               <Link 
                 key={item.href} 
                 href={item.href} 
-                className="text-sm lg:text-base text-gray-700 hover:text-gray-900 whitespace-nowrap"
+                className="text-sm lg:text-base text-gray-700 hover:text-gray-900 font-semibold whitespace-nowrap"
               >
                 {item.label}
               </Link>
@@ -52,10 +52,10 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setSupportOpen(!supportOpen)}
-                  className="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1"
+                  className="text-sm text-gray-800 hover:text-indigo-600 flex items-center gap-1 font-semibold"
                 >
-                  <span>💬</span>
-                  Support
+                  <span className="text-base">💬</span>
+                  <span className="hidden lg:inline">Support</span>
                   {unreadCount > 0 && (
                     <span className="bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
                       {unreadCount}
@@ -64,14 +64,14 @@ export default function Header() {
                 </button>
                 
                 {supportOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-slide-up">
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-slide-up z-50">
                     <h4 className="font-bold text-gray-900 mb-3">Contact Support</h4>
                     <form onSubmit={handleSupportSubmit}>
                       <textarea
                         value={supportMessage}
                         onChange={(e) => setSupportMessage(e.target.value)}
                         placeholder="Describe your issue..."
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm mb-3 resize-none"
+                        className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm mb-3 resize-none text-gray-900"
                         rows={3}
                       />
                       <button
@@ -86,7 +86,7 @@ export default function Header() {
               </div>
             )}
 
-            <Link href="/cart" className="text-gray-700 hover:text-gray-900 relative flex items-center">
+            <Link href="/cart" className="text-gray-700 hover:text-gray-900 relative flex items-center font-semibold">
               <span className="text-sm lg:text-base">Cart</span>
               {state.items.length > 0 && (
                 <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
@@ -153,7 +153,7 @@ export default function Header() {
               <Link 
                 key={item.href} 
                 href={item.href} 
-                className="block text-gray-700 hover:text-gray-900 py-2 px-2 rounded-lg hover:bg-gray-50"
+                className="block text-gray-700 hover:text-gray-900 py-2 px-2 rounded-lg hover:bg-gray-50 font-semibold"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
@@ -163,7 +163,7 @@ export default function Header() {
             {isLoggedIn && user?.role === 'user' && (
               <button
                 onClick={() => setSupportOpen(!supportOpen)}
-                className="w-full text-left text-gray-700 py-2 px-2 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                className="w-full text-left text-gray-700 py-2 px-2 rounded-lg hover:bg-gray-50 flex items-center gap-2 font-semibold"
               >
                 💬 Support
               </button>
@@ -176,7 +176,7 @@ export default function Header() {
                     value={supportMessage}
                     onChange={(e) => setSupportMessage(e.target.value)}
                     placeholder="Describe your issue..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm mb-2 resize-none"
+                    className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm mb-2 resize-none text-gray-900"
                     rows={3}
                   />
                   <button

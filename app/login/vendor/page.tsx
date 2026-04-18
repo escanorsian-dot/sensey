@@ -44,7 +44,7 @@ export default function VendorLoginPage() {
           <p className="text-emerald-300 mt-2">Vendor Portal</p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-white/20">
+        <div className="bg-emerald-900/80 rounded-3xl p-6 md:p-8 border border-emerald-600">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🏪</span>
@@ -54,31 +54,31 @@ export default function VendorLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-emerald-200 mb-2">Username</label>
+              <label className="block text-sm font-semibold text-white mb-2">Username</label>
               <input
                 type="text"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                className="w-full p-3 md:p-4 bg-emerald-800 border-2 border-emerald-600 rounded-xl text-white placeholder:text-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                 placeholder="Enter username"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-emerald-200 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-white mb-2">Password</label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                className="w-full p-3 md:p-4 bg-emerald-800 border-2 border-emerald-600 rounded-xl text-white placeholder:text-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                 placeholder="Enter password"
               />
             </div>
 
             {error && (
-              <div className="bg-rose-500/20 border border-rose-500/50 text-rose-300 rounded-xl p-3 text-sm">
+              <div className="bg-red-500/20 border border-red-500/50 text-red-300 rounded-xl p-3 text-sm font-medium">
                 {error}
               </div>
             )}
@@ -92,13 +92,13 @@ export default function VendorLoginPage() {
             </button>
           </form>
 
-          <p className="text-center mt-4 text-emerald-300 text-sm">
+          <p className="text-center mt-4 text-emerald-300 text-sm font-medium">
             Vendor account? Contact admin to get access.
           </p>
         </div>
 
         <p className="text-center mt-6">
-          <Link href="/login" className="text-emerald-400 hover:text-white">← Back to Main Login</Link>
+          <Link href="/login" className="text-emerald-300 hover:text-white font-medium">← Back to Main Login</Link>
         </p>
       </div>
     </div>
