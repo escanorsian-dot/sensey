@@ -3,20 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../auth-context';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { isLoggedIn, user } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn && user?.role === 'admin') {
-      router.replace('/admin');
+    const stored = localStorage.getItem('sensey_user');
+    if (stored) {
+      const userData = JSON.parse(stored);
+      if (userData.isLoggedIn && userData.role === 'admin') {
+        router.push('/admin');
+      }
     }
-  }, [isLoggedIn, user, router]);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ export default function AdminLoginPage() {
 
       if (res.ok && data.success) {
         localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'admin', isLoggedIn: true }));
-        window.location.replace('/admin');
+        router.push('/admin');
       } else {
         setError(data.message || 'Invalid credentials');
       }
@@ -45,17 +47,6 @@ export default function AdminLoginPage() {
 
     setIsLoading(false);
   };
-
-  if (isLoggedIn && user?.role === 'admin') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex items-center justify-center p-4">
-        <div className="text-center text-white">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg font-semibold">Redirecting to Admin Panel...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex items-center justify-center p-4">
