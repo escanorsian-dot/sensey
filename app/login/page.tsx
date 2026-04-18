@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth-context';
 import Link from 'next/link';
 
 interface LoginCredentials {
@@ -11,7 +12,9 @@ interface LoginCredentials {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [userType, setUserType] = useState<'user' | 'vendor'>('user');
   const [formData, setFormData] = useState<LoginCredentials & { confirmPassword?: string }>({
     username: '',
     password: '',
@@ -19,9 +22,6 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const ADMIN_USERNAME = 'qwertyu';
-  const ADMIN_PASSWORD = 'qwertyu';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,37 +35,19 @@ export default function LoginPage() {
     }
 
     if (isLogin) {
-      if (formData.username === ADMIN_USERNAME && formData.password === ADMIN_PASSWORD) {
-        localStorage.setItem('sensey_user', JSON.stringify({ username: 'admin', role: 'admin', isLoggedIn: true }));
-        router.push('/admin');
-        return;
-      }
-
-      const users = JSON.parse(localStorage.getItem('sensey_users') || '[]');
-      const user = users.find((u: any) => u.username === formData.username && u.password === formData.password);
-      
-      if (user) {
-        localStorage.setItem('sensey_user', JSON.stringify({ username: user.username, role: 'user', isLoggedIn: true }));
+      const result = await login(formData.username, formData.password);
+      if (result.success) {
         router.push('/');
-        return;
+      } else {
+        setError(result.message || 'Invalid credentials');
       }
-
-      setError('Invalid username or password');
     } else {
-      const users = JSON.parse(localStorage.getItem('sensey_users') || '[]');
-      
-      if (users.find((u: any) => u.username === formData.username)) {
-        setError('Username already exists');
-        setIsLoading(false);
-        return;
+      const result = await register(formData.username, formData.password);
+      if (result.success) {
+        router.push('/');
+      } else {
+        setError(result.message || 'Registration failed');
       }
-
-      const newUser = { username: formData.username, password: formData.password };
-      users.push(newUser);
-      localStorage.setItem('sensey_users', JSON.stringify(users));
-      
-      localStorage.setItem('sensey_user', JSON.stringify({ username: newUser.username, role: 'user', isLoggedIn: true }));
-      router.push('/');
     }
 
     setIsLoading(false);
@@ -80,6 +62,41 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+          {!isLogin && (
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-gray-700 mb-2">I am a:</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUserType('user')}
+                  className={`flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition-all ${
+                    userType === 'user'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                  }`}
+                >
+                  🛒 Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('vendor')}
+                  className={`flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition-all ${
+                    userType === 'vendor'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                  }`}
+                >
+                  🏪 Vendor
+                </button>
+              </div>
+              {userType === 'vendor' && (
+                <p className="text-xs text-amber-600 mt-2 text-center">
+                  Note: Vendor accounts require admin approval
+                </p>
+              )}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
@@ -144,12 +161,6 @@ export default function LoginPage() {
             >
               {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
             </button>
-          </div>
-
-          <div className="mt-4 p-3 bg-slate-50 rounded-xl">
-            <p className="text-xs text-gray-500 text-center">
-              Admin: username <strong>qwertyu</strong>, password <strong>qwertyu</strong>
-            </p>
           </div>
         </div>
 

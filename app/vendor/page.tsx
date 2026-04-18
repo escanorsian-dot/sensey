@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
@@ -8,8 +8,18 @@ import { useProducts } from '../products-context';
 
 export default function VendorPage() {
   const router = useRouter();
-  const { addProduct, error, isLoading } = useProducts();
-  const { user, error: authError, isLoading: isAuthLoading } = useAuth();
+  const { addProduct, error: productError, isLoading } = useProducts();
+  const { user, isLoggedIn } = useAuth();
+  
+  useEffect(() => {
+    if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
+      router.push('/login');
+    }
+  }, [isLoggedIn, user, router]);
+
+  if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
+    return null;
+  }
   
   const [formData, setFormData] = useState({
     name: '',
@@ -93,10 +103,10 @@ export default function VendorPage() {
         </div>
         
         <div className="space-y-3 mb-6">
-          {(error || authError || submitError) && (
+          {(productError || submitError) && (
             <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl px-6 py-4 font-semibold flex items-center gap-3 animate-slide-up">
               <span className="text-xl">❌</span>
-              {submitError || authError || error}
+              {submitError || productError}
             </div>
           )}
         </div>

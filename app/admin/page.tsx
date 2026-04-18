@@ -47,7 +47,7 @@ function ReplyForm({ messageId, onReply }: { messageId: string; onReply: (id: st
 
 export default function AdminPage() {
   const { products, addProduct, removeProduct, error } = useProducts();
-  const { user, isLoggedIn, supportMessages, adminReply, markAsRead, unreadCount } = useAuth();
+  const { user, isLoggedIn, supportMessages, adminReply, markAsRead, unreadCount, adminUsers, vendorUsers, addAdminUser, removeAdminUser, addVendorUser, removeVendorUser } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function AdminPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs' | 'support'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs' | 'support' | 'users'>('products');
   const [mobileTabOpen, setMobileTabOpen] = useState(false);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
@@ -84,6 +84,11 @@ export default function AdminPage() {
   const [newUTR, setNewUTR] = useState('');
   const [utrMessage, setUtrMessage] = useState<string | null>(null);
   const [isLoadingUTRs, setIsLoadingUTRs] = useState(false);
+
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newVendorUsername, setNewVendorUsername] = useState('');
+  const [newVendorPassword, setNewVendorPassword] = useState('');
 
   useEffect(() => {
     fetchPaymentQR();
@@ -268,6 +273,7 @@ const loadUTRs = async () => {
     receipts: { icon: '📋', label: `Receipts${receipts.length > 0 ? ` (${receipts.length})` : ''}` },
     utrs: { icon: '🔑', label: `UTRs${validUTRs.length > 0 ? ` (${validUTRs.length})` : ''}` },
     support: { icon: '💬', label: `Support${unreadCount > 0 ? ` (${unreadCount} new)` : ''}` },
+    users: { icon: '👥', label: 'Users' },
   };
 
   useEffect(() => {
@@ -387,6 +393,16 @@ const loadUTRs = async () => {
             >
               💬 Support {unreadCount > 0 && `(${unreadCount})`}
             </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
+                activeTab === 'users'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              👥 Users
+            </button>
           </div>
 
           <div className="md:hidden">
@@ -399,7 +415,7 @@ const loadUTRs = async () => {
             </button>
             {mobileTabOpen && (
               <div className="border-t border-slate-100 bg-white">
-                {(['products', 'payments', 'receipts', 'utrs'] as const).map((tab) => (
+                {(['products', 'payments', 'receipts', 'utrs', 'support', 'users'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => {
@@ -842,6 +858,54 @@ const loadUTRs = async () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div className="space-y-8 animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Add Admin User</h3>
+                    <form onSubmit={(e) => { e.preventDefault(); addAdminUser(newAdminUsername, newAdminPassword); setNewAdminUsername(''); setNewAdminPassword(''); }} className="space-y-3">
+                      <input type="text" placeholder="Username" value={newAdminUsername} onChange={(e) => setNewAdminUsername(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <input type="password" placeholder="Password" value={newAdminPassword} onChange={(e) => setNewAdminPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <button type="submit" className="w-full py-2 bg-indigo-600 text-white rounded-xl font-semibold">Add Admin</button>
+                    </form>
+                    <div className="mt-4 space-y-2">
+                      <p className="font-bold text-gray-700 text-sm">Existing Admins:</p>
+                      {adminUsers.map((admin) => (
+                        <div key={admin.username} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
+                          <span className="text-sm font-medium">{admin.username}</span>
+                          {admin.username !== 'qwertyu' && (
+                            <button onClick={() => removeAdminUser(admin.username)} className="text-rose-500 text-xs">Remove</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Add Vendor User</h3>
+                    <form onSubmit={(e) => { e.preventDefault(); addVendorUser(newVendorUsername, newVendorPassword); setNewVendorUsername(''); setNewVendorPassword(''); }} className="space-y-3">
+                      <input type="text" placeholder="Username" value={newVendorUsername} onChange={(e) => setNewVendorUsername(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <input type="password" placeholder="Password" value={newVendorPassword} onChange={(e) => setNewVendorPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <button type="submit" className="w-full py-2 bg-emerald-600 text-white rounded-xl font-semibold">Add Vendor</button>
+                    </form>
+                    <div className="mt-4 space-y-2">
+                      <p className="font-bold text-gray-700 text-sm">Existing Vendors:</p>
+                      {vendorUsers.length === 0 ? (
+                        <p className="text-sm text-gray-500">No vendors yet</p>
+                      ) : (
+                        vendorUsers.map((vendor) => (
+                          <div key={vendor.username} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
+                            <span className="text-sm font-medium">{vendor.username}</span>
+                            <button onClick={() => removeVendorUser(vendor.username)} className="text-rose-500 text-xs">Remove</button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

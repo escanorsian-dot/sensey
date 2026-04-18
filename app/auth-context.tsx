@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 interface User {
   uid?: string;
   username: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'vendor' | 'user';
 }
 
 interface SupportMessage {
@@ -21,14 +21,20 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  register: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   supportMessages: SupportMessage[];
   sendMessage: (message: string) => Promise<void>;
   adminReply: (messageId: string, reply: string) => Promise<void>;
   markAsRead: () => void;
   unreadCount: number;
+  adminUsers: Array<{ username: string; password: string }>;
+  vendorUsers: Array<{ username: string; password: string }>;
+  addAdminUser: (username: string, password: string) => Promise<void>;
+  removeAdminUser: (username: string) => Promise<void>;
+  addVendorUser: (username: string, password: string) => Promise<void>;
+  removeVendorUser: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,9 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [supportMessages, setSupportMessages] = useState<SupportMessage[]>([]);
   const [lastRead, setLastRead] = useState<number>(0);
-
-  const ADMIN_USERNAME = 'qwertyu';
-  const ADMIN_PASSWORD = 'qwertyu';
+  const [adminUsers, setAdminUsers] = useState<Array<{ username: string; password: string }>>([]);
+  const [vendorUsers, setVendorUsers] = useState<Array<{ username: string; password: string }>>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem('sensey_user');
@@ -63,27 +68,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedLastRead) {
       setLastRead(parseInt(storedLastRead));
     }
-  }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      const userData = { username: 'admin', role: 'admin' as const, isLoggedIn: true };
-      localStorage.setItem('sensey_user', JSON.stringify(userData));
-      setUser({ username: 'admin', role: 'admin' });
-      return true;
+    const storedAdmins = localStorage.getItem('sensey_admin_users');
+    if (storedAdmins) {
+      setAdminUsers(JSON.parse(storedAdmins));
+    } else {
+      const defaultAdmin = { username: 'qwertyu', password: 'qwertyu' };
+      setAdminUsers([defaultAdmin]);
+      localStorage.setItem('sensey_admin_users', JSON.stringify([defaultAdmin]));
     }
 
-    const users = JSON.parse(localStorage.getItem('sensey_users') || '[]');
-    const foundUser = users.find((u: any) => u.username === username && u.password === password);
+    const storedVendors = localStorage.getItem('sensey_vendor_users');
+    if (storedVendors) {
+      setVendorUsers(JSON.parse(storedVendors));
+    }
+  }, []);
 
+  const login = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    const admins = JSON.parse(localStorage.getItem('sensey_admin_users') || '[]');
+    const vendorUsersData = JSON.parse(localStorage.getItem('sensey_vendor_users') || '[]');
+    const regularUsers = JSON.parse(localStorage.getItem('sensey_users') || '[]');
+
+    const admin = admins.find((u: any) => u.username === username && u.password === password);
+    if (admin) {
+      const userData = { username: admin.username, role: 'admin' as const, isLoggedIn: true };
+      localStorage.setItem('sensey_user', JSON.stringify(userData));
+      setUser({ username: admin.username, role: 'admin' });
+      return { success: true };
+    }
+
+    const vendor = vendorUsersData.find((u: any) => u.username === username && u.password === password);
+    if (vendor) {
+      const userData = { username: vendor.username, role: 'vendor' as const, isLoggedIn: true };
+      localStorage.setItem('sensey_user', JSON.stringify(userData));
+      setUser({ username: vendor.username, role: 'vendor' });
+      return { success: true };
+    }
+
+    const foundUser = regularUsers.find((u: any) => u.username === username && u.password === password);
     if (foundUser) {
       const userData = { username: foundUser.username, role: 'user' as const, isLoggedIn: true };
       localStorage.setItem('sensey_user', JSON.stringify(userData));
       setUser({ username: foundUser.username, role: 'user' });
-      return true;
+      return { success: true };
     }
 
-    return false;
+    return { success: false, message: 'Invalid username or password' };
   };
 
   const logout = () => {
@@ -91,20 +121,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const register = async (username: string, password: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('sensey_users') || '[]');
+  const register = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    const regularUsers = JSON.parse(localStorage.getItem('sensey_users') || '[]');
 
-    if (users.find((u: any) => u.username === username)) {
-      return false;
+    if (regularUsers.find((u: any) => u.username === username)) {
+      return { success: false, message: 'Username already exists' };
     }
 
-    users.push({ username, password });
-    localStorage.setItem('sensey_users', JSON.stringify(users));
+    regularUsers.push({ username, password });
+    localStorage.setItem('sensey_users', JSON.stringify(regularUsers));
 
     const userData = { username, role: 'user' as const, isLoggedIn: true };
     localStorage.setItem('sensey_user', JSON.stringify(userData));
     setUser({ username, role: 'user' });
-    return true;
+    return { success: true };
   };
 
   const sendMessage = async (message: string) => {
@@ -133,6 +163,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('sensey_support_last_read', Date.now().toString());
   };
 
+  const addAdminUser = async (username: string, password: string) => {
+    const updated = [...adminUsers, { username, password }];
+    setAdminUsers(updated);
+    localStorage.setItem('sensey_admin_users', JSON.stringify(updated));
+  };
+
+  const removeAdminUser = async (username: string) => {
+    if (username === 'qwertyu') return;
+    const updated = adminUsers.filter(u => u.username !== username);
+    setAdminUsers(updated);
+    localStorage.setItem('sensey_admin_users', JSON.stringify(updated));
+  };
+
+  const addVendorUser = async (username: string, password: string) => {
+    const updated = [...vendorUsers, { username, password }];
+    setVendorUsers(updated);
+    localStorage.setItem('sensey_vendor_users', JSON.stringify(updated));
+  };
+
+  const removeVendorUser = async (username: string) => {
+    const updated = vendorUsers.filter(u => u.username !== username);
+    setVendorUsers(updated);
+    localStorage.setItem('sensey_vendor_users', JSON.stringify(updated));
+  };
+
   const unreadCount = supportMessages.filter((msg) => msg.timestamp > lastRead && msg.username !== 'admin').length;
 
   const value = useMemo(
@@ -149,9 +204,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       adminReply,
       markAsRead,
       unreadCount,
-      isFirebaseEnabled: false,
+      adminUsers,
+      vendorUsers,
+      addAdminUser,
+      removeAdminUser,
+      addVendorUser,
+      removeVendorUser,
     }),
-    [user, supportMessages, unreadCount]
+    [user, supportMessages, unreadCount, adminUsers, vendorUsers]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
