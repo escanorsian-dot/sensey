@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,6 +13,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +36,18 @@ export default function LoginPage() {
         const data = await res.json();
 
         if (data.success) {
-          window.localStorage.setItem('sensey_user', JSON.stringify({
+          localStorage.setItem('sensey_user', JSON.stringify({
             username: formData.username,
             role: data.role,
             isLoggedIn: true
           }));
+          
           if (data.role === 'admin') {
-            window.location.href = '/admin';
+            router.push('/admin');
           } else if (data.role === 'vendor') {
-            window.location.href = '/vendor';
+            router.push('/vendor');
           } else {
-            window.location.href = '/';
+            router.push('/');
           }
         } else {
           setError(data.message || 'Invalid credentials');
@@ -62,12 +65,12 @@ export default function LoginPage() {
         const data = await res.json();
 
         if (data.success) {
-          window.localStorage.setItem('sensey_user', JSON.stringify({
+          localStorage.setItem('sensey_user', JSON.stringify({
             username: formData.username,
             role: 'user',
             isLoggedIn: true
           }));
-          window.location.href = '/';
+          router.push('/');
         } else {
           setError(data.message || 'Registration failed');
         }
@@ -80,14 +83,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4 text-gray-900">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-4xl font-black text-gray-900">Sensey</Link>
           <p className="text-gray-500 mt-2">{isLogin ? 'Welcome back!' : 'Create your account'}</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-100">
           <div className="flex gap-3 mb-6">
             <Link href="/login/admin" className="flex-1 py-2 px-3 bg-slate-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-slate-700 transition-colors">
               ⚙️ Admin
@@ -111,7 +114,7 @@ export default function LoginPage() {
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
+                className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
                 placeholder="Enter username"
               />
             </div>
@@ -123,7 +126,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
+                className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
                 placeholder="Enter password"
               />
             </div>
@@ -136,7 +139,7 @@ export default function LoginPage() {
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required={!isLogin}
-                  className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
+                  className="w-full p-3 md:p-4 bg-slate-50 border-2 border-slate-100 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-gray-900"
                   placeholder="Confirm password"
                 />
               </div>
@@ -171,7 +174,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6">
-          <Link href="/" className="text-gray-500 hover:text-gray-700">← Back to Store</Link>
+          <Link href="/" className="text-gray-500 hover:text-gray-700 font-medium">← Back to Store</Link>
         </p>
       </div>
     </div>

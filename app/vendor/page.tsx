@@ -8,41 +8,29 @@ import { useProducts } from '../products-context';
 
 export default function VendorPage() {
   const [isChecking, setIsChecking] = useState(true);
+  const router = useRouter();
+  const { addProduct, error: productError, isLoading: productsLoading } = useProducts();
+  const { user } = useAuth();
   
   useEffect(() => {
     const stored = localStorage.getItem('sensey_user');
     if (!stored) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     try {
       const userData = JSON.parse(stored);
-      if (!userData.isLoggedIn || (userData.role !== 'vendor' && userData.role !== 'admin')) {
-        window.location.href = '/login';
+      if (!userData || !userData.isLoggedIn || (userData.role !== 'vendor' && userData.role !== 'admin')) {
+        router.push('/login');
         return;
       }
     } catch (e) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     setIsChecking(false);
-  }, []);
+  }, [router]);
 
-  if (isChecking) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-semibold">Checking authorization...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { addProduct, error: productError, isLoading } = { addProduct: async (_: any) => {}, error: null, isLoading: false };
-  
-  const router = { push: () => {} };
-  
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -84,21 +72,22 @@ export default function VendorPage() {
     try {
       let imageUrls: string[] = [];
       
-      const ownerId = 'vendor';
+      const ownerId = user?.username || 'vendor';
       const uploadPromises = selectedFiles.map(file => uploadProductImage(file, ownerId));
       imageUrls = await Promise.all(uploadPromises);
 
       await addProduct({
         name: formData.name,
         price: parseFloat(formData.price),
-        image: imageUrls[0],
+        image: imageUrls[0] || '',
         images: imageUrls,
         description: formData.description,
-        vendor: formData.vendor || 'Anonymous Vendor',
+        vendor: formData.vendor || ownerId,
       });
 
       setFormData({ name: '', price: '', description: '', vendor: '' });
       setImageFiles([null, null, null, null]);
+      alert('Product published successfully!');
     } catch (err: any) {
       setSubmitError(err.message || 'Error saving product. Please try again.');
     } finally {
@@ -106,11 +95,22 @@ export default function VendorPage() {
     }
   };
 
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold">Checking authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => router.push('/')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold transition-all hover:-translate-x-1"
         >
           <span className="text-xl">←</span> Back to Store
@@ -226,7 +226,7 @@ export default function VendorPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || productsLoading}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 md:py-5 rounded-xl md:rounded-2xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 active:scale-95"
           >
             {isSubmitting ? '📤 PUBLISHING...' : '🚀 PUBLISH PRODUCT'}

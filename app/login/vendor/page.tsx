@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function VendorLoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +30,15 @@ export default function VendorLoginPage() {
           role: 'vendor',
           isLoggedIn: true
         }));
-        window.location.href = '/vendor';
+        router.push('/vendor');
       } else {
         setError(data.message || 'Invalid credentials');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -47,7 +49,7 @@ export default function VendorLoginPage() {
           <p className="text-emerald-300 mt-2">Vendor Portal</p>
         </div>
 
-        <div className="bg-emerald-900/80 rounded-3xl p-6 md:p-8 border border-emerald-600">
+        <div className="bg-emerald-900/80 rounded-3xl p-6 md:p-8 border border-slate-600">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🏪</span>
