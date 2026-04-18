@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
 
       if (res.ok && data.success) {
         localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'admin', isLoggedIn: true }));
-        router.push('/admin');
+        window.location.replace('/admin');
       } else {
         setError(data.message || 'Invalid credentials');
       }
