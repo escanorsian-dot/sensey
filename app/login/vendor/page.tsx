@@ -43,7 +43,6 @@ export default function VendorLoginPage() {
       setIsLoading(false);
     }
   };
-...
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center p-4">
