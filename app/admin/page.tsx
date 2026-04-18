@@ -47,7 +47,7 @@ function ReplyForm({ messageId, onReply }: { messageId: string; onReply: (id: st
 
 export default function AdminPage() {
   const { products, addProduct, removeProduct, error } = useProducts();
-  const { user, isLoggedIn, supportMessages, adminReply, markAsRead, unreadCount, adminUsers, vendorUsers, addAdminUser, removeAdminUser, addVendorUser, removeVendorUser } = useAuth();
+  const { user, isLoggedIn, supportMessages, adminReply, markAsRead, unreadCount, deleteMessage } = useAuth();
   const router = useRouter();
   
   useEffect(() => {
@@ -89,12 +89,75 @@ export default function AdminPage() {
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newVendorUsername, setNewVendorUsername] = useState('');
   const [newVendorPassword, setNewVendorPassword] = useState('');
+  const [adminList, setAdminList] = useState<Array<{ username: string }>>([]);
+  const [vendorList, setVendorList] = useState<Array<{ username: string }>>([]);
 
   useEffect(() => {
     fetchPaymentQR();
     loadReceipts();
     loadUTRs();
+    loadAdmins();
+    loadVendors();
   }, []);
+
+  const loadAdmins = async () => {
+    try {
+      const res = await fetch('/api/admins');
+      const data = await res.json();
+      if (data.admins) setAdminList(data.admins);
+    } catch (err) { console.error('Failed to load admins:', err); }
+  };
+
+  const loadVendors = async () => {
+    try {
+      const res = await fetch('/api/vendors');
+      const data = await res.json();
+      if (data.vendors) setVendorList(data.vendors);
+    } catch (err) { console.error('Failed to load vendors:', err); }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!newAdminUsername || !newAdminPassword) return;
+    try {
+      await fetch('/api/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newAdminUsername, password: newAdminPassword })
+      });
+      setNewAdminUsername('');
+      setNewAdminPassword('');
+      loadAdmins();
+    } catch (err) { console.error('Failed to add admin:', err); }
+  };
+
+  const handleRemoveAdmin = async (username: string) => {
+    if (username === 'qwertyu') return;
+    try {
+      await fetch(`/api/admins?username=${username}`, { method: 'DELETE' });
+      loadAdmins();
+    } catch (err) { console.error('Failed to remove admin:', err); }
+  };
+
+  const handleAddVendor = async () => {
+    if (!newVendorUsername || !newVendorPassword) return;
+    try {
+      await fetch('/api/vendors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newVendorUsername, password: newVendorPassword })
+      });
+      setNewVendorUsername('');
+      setNewVendorPassword('');
+      loadVendors();
+    } catch (err) { console.error('Failed to add vendor:', err); }
+  };
+
+  const handleRemoveVendor = async (username: string) => {
+    try {
+      await fetch(`/api/vendors?username=${username}`, { method: 'DELETE' });
+      loadVendors();
+    } catch (err) { console.error('Failed to remove vendor:', err); }
+  };
 
   const fetchPaymentQR = async () => {
     try {
@@ -261,7 +324,8 @@ const loadUTRs = async () => {
 
   const handleRemoveProduct = async (id: string) => {
     try {
-      await removeProduct(id);
+      const product = products.find(p => p.id === id);
+      await removeProduct(id, product?.image);
     } catch {
       setSubmitError('Failed to remove product.');
     }
@@ -843,6 +907,12 @@ const loadUTRs = async () => {
                             <p className="font-bold text-gray-900">{msg.username}</p>
                             <p className="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</p>
                           </div>
+                          <button
+                            onClick={() => deleteMessage(msg.id)}
+                            className="text-rose-500 hover:text-rose-700 text-xs font-medium"
+                          >
+                            Delete
+                          </button>
                         </div>
                         <p className="text-gray-700 mb-4">{msg.message}</p>
                         
@@ -866,18 +936,18 @@ const loadUTRs = async () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Add Admin User</h3>
-                    <form onSubmit={(e) => { e.preventDefault(); addAdminUser(newAdminUsername, newAdminPassword); setNewAdminUsername(''); setNewAdminPassword(''); }} className="space-y-3">
+                    <form onSubmit={(e) => { e.preventDefault(); handleAddAdmin(); }} className="space-y-3">
                       <input type="text" placeholder="Username" value={newAdminUsername} onChange={(e) => setNewAdminUsername(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       <input type="password" placeholder="Password" value={newAdminPassword} onChange={(e) => setNewAdminPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       <button type="submit" className="w-full py-2 bg-indigo-600 text-white rounded-xl font-semibold">Add Admin</button>
                     </form>
                     <div className="mt-4 space-y-2">
                       <p className="font-bold text-gray-700 text-sm">Existing Admins:</p>
-                      {adminUsers.map((admin) => (
+                      {adminList.map((admin: { username: string }) => (
                         <div key={admin.username} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
                           <span className="text-sm font-medium">{admin.username}</span>
                           {admin.username !== 'qwertyu' && (
-                            <button onClick={() => removeAdminUser(admin.username)} className="text-rose-500 text-xs">Remove</button>
+                            <button onClick={() => handleRemoveAdmin(admin.username)} className="text-rose-500 text-xs">Remove</button>
                           )}
                         </div>
                       ))}
@@ -886,20 +956,20 @@ const loadUTRs = async () => {
 
                   <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Add Vendor User</h3>
-                    <form onSubmit={(e) => { e.preventDefault(); addVendorUser(newVendorUsername, newVendorPassword); setNewVendorUsername(''); setNewVendorPassword(''); }} className="space-y-3">
+                    <form onSubmit={(e) => { e.preventDefault(); handleAddVendor(); }} className="space-y-3">
                       <input type="text" placeholder="Username" value={newVendorUsername} onChange={(e) => setNewVendorUsername(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       <input type="password" placeholder="Password" value={newVendorPassword} onChange={(e) => setNewVendorPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       <button type="submit" className="w-full py-2 bg-emerald-600 text-white rounded-xl font-semibold">Add Vendor</button>
                     </form>
                     <div className="mt-4 space-y-2">
                       <p className="font-bold text-gray-700 text-sm">Existing Vendors:</p>
-                      {vendorUsers.length === 0 ? (
+                      {vendorList.length === 0 ? (
                         <p className="text-sm text-gray-500">No vendors yet</p>
                       ) : (
-                        vendorUsers.map((vendor) => (
+                        vendorList.map((vendor: { username: string }) => (
                           <div key={vendor.username} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
                             <span className="text-sm font-medium">{vendor.username}</span>
-                            <button onClick={() => removeVendorUser(vendor.username)} className="text-rose-500 text-xs">Remove</button>
+                            <button onClick={() => handleRemoveVendor(vendor.username)} className="text-rose-500 text-xs">Remove</button>
                           </div>
                         ))
                       )}

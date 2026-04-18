@@ -27,7 +27,7 @@ export interface ProductDraft {
 interface ProductsContextType {
   products: Product[];
   addProduct: (product: ProductDraft) => Promise<void>;
-  removeProduct: (id: string) => Promise<void>;
+  removeProduct: (id: string, imageUrl?: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -120,8 +120,16 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  const removeProduct = async (id: string) => {
+  const removeProduct = async (id: string, imageUrl?: string) => {
     try {
+      if (imageUrl) {
+        await fetch('/api/delete-image', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl })
+        });
+      }
+      
       const response = await fetch(`/api/products/${id}`, {
         method: 'DELETE',
       });

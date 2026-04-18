@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { getDB } from '@/lib/firebase';
+import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 
 interface User {
   uid?: string;
@@ -21,20 +23,15 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string; role?: string }>;
   logout: () => void;
   register: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
   supportMessages: SupportMessage[];
   sendMessage: (message: string) => Promise<void>;
   adminReply: (messageId: string, reply: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   markAsRead: () => void;
   unreadCount: number;
-  adminUsers: Array<{ username: string; password: string }>;
-  vendorUsers: Array<{ username: string; password: string }>;
-  addAdminUser: (username: string, password: string) => Promise<void>;
-  removeAdminUser: (username: string) => Promise<void>;
-  addVendorUser: (username: string, password: string) => Promise<void>;
-  removeVendorUser: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -43,10 +40,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [supportMessages, setSupportMessages] = useState<SupportMessage[]>([]);
   const [lastRead, setLastRead] = useState<number>(0);
-  const [adminUsers, setAdminUsers] = useState<Array<{ username: string; password: string }>>([]);
-  const [vendorUsers, setVendorUsers] = useState<Array<{ username: string; password: string }>>([]);
 
   useEffect(() => {
+    loadUserFromStorage();
+    loadSupportMessages();
+  }, []);
+
+  const loadUserFromStorage = () => {
     const stored = localStorage.getItem('sensey_user');
     if (stored) {
       try {
@@ -58,62 +58,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error parsing user data:', e);
       }
     }
+  };
 
-    const storedMessages = localStorage.getItem('sensey_support_messages');
-    if (storedMessages) {
-      setSupportMessages(JSON.parse(storedMessages));
+  const loadSupportMessages = async () => {
+    try {
+      const db = getDB();
+      const messagesRef = collection(db, 'support_messages');
+      const q = query(messagesRef, orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      
+      const messages = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          username: data.username || '',
+          message: data.message || '',
+          reply: data.reply || undefined,
+          timestamp: data.timestamp?.toDate?.()?.getTime() || Date.now()
+        };
+      });
+      
+      setSupportMessages(messages);
+
+      const storedLastRead = localStorage.getItem('sensey_support_last_read');
+      if (storedLastRead) {
+        setLastRead(parseInt(storedLastRead));
+      }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
     }
+  };
 
-    const storedLastRead = localStorage.getItem('sensey_support_last_read');
-    if (storedLastRead) {
-      setLastRead(parseInt(storedLastRead));
+  const login = async (username: string, password: string): Promise<{ success: boolean; message?: string; role?: string }> => {
+    try {
+      const db = getDB();
+      
+      const adminDoc = await getDoc(doc(db, 'admins', username));
+      if (adminDoc.exists() && adminDoc.data().password === password) {
+        const userData = { username, role: 'admin', isLoggedIn: true };
+        localStorage.setItem('sensey_user', JSON.stringify(userData));
+        setUser({ username, role: 'admin' });
+        return { success: true, role: 'admin' };
+      }
+
+      const vendorsRef = collection(db, 'vendors');
+      const vendorQuery = query(vendorsRef, where('username', '==', username));
+      const vendorSnapshot = await getDocs(vendorQuery);
+      
+      if (!vendorSnapshot.empty) {
+        const vendorData = vendorSnapshot.docs[0].data();
+        if (vendorData.password === password) {
+          const userData = { username, role: 'vendor', isLoggedIn: true };
+          localStorage.setItem('sensey_user', JSON.stringify(userData));
+          setUser({ username, role: 'vendor' });
+          return { success: true, role: 'vendor' };
+        }
+      }
+
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('username', '==', username));
+      const userSnapshot = await getDocs(userQuery);
+      
+      if (!userSnapshot.empty) {
+        const userDataDoc = userSnapshot.docs[0].data();
+        if (userDataDoc.password === password) {
+          const userData = { username, role: 'user', isLoggedIn: true };
+          localStorage.setItem('sensey_user', JSON.stringify(userData));
+          setUser({ username, role: 'user' });
+          return { success: true, role: 'user' };
+        }
+      }
+
+      return { success: false, message: 'Invalid username or password' };
+    } catch (err) {
+      console.error('Login error:', err);
+      return { success: false, message: 'Login failed' };
     }
-
-    const storedAdmins = localStorage.getItem('sensey_admin_users');
-    if (storedAdmins) {
-      setAdminUsers(JSON.parse(storedAdmins));
-    } else {
-      const defaultAdmin = { username: 'qwertyu', password: 'qwertyu' };
-      setAdminUsers([defaultAdmin]);
-      localStorage.setItem('sensey_admin_users', JSON.stringify([defaultAdmin]));
-    }
-
-    const storedVendors = localStorage.getItem('sensey_vendor_users');
-    if (storedVendors) {
-      setVendorUsers(JSON.parse(storedVendors));
-    }
-  }, []);
-
-  const login = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    const admins = JSON.parse(localStorage.getItem('sensey_admin_users') || '[]');
-    const vendorUsersData = JSON.parse(localStorage.getItem('sensey_vendor_users') || '[]');
-    const regularUsers = JSON.parse(localStorage.getItem('sensey_users') || '[]');
-
-    const admin = admins.find((u: any) => u.username === username && u.password === password);
-    if (admin) {
-      const userData = { username: admin.username, role: 'admin' as const, isLoggedIn: true };
-      localStorage.setItem('sensey_user', JSON.stringify(userData));
-      setUser({ username: admin.username, role: 'admin' });
-      return { success: true };
-    }
-
-    const vendor = vendorUsersData.find((u: any) => u.username === username && u.password === password);
-    if (vendor) {
-      const userData = { username: vendor.username, role: 'vendor' as const, isLoggedIn: true };
-      localStorage.setItem('sensey_user', JSON.stringify(userData));
-      setUser({ username: vendor.username, role: 'vendor' });
-      return { success: true };
-    }
-
-    const foundUser = regularUsers.find((u: any) => u.username === username && u.password === password);
-    if (foundUser) {
-      const userData = { username: foundUser.username, role: 'user' as const, isLoggedIn: true };
-      localStorage.setItem('sensey_user', JSON.stringify(userData));
-      setUser({ username: foundUser.username, role: 'user' });
-      return { success: true };
-    }
-
-    return { success: false, message: 'Invalid username or password' };
   };
 
   const logout = () => {
@@ -122,70 +142,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
-    const regularUsers = JSON.parse(localStorage.getItem('sensey_users') || '[]');
+    try {
+      const db = getDB();
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('username', '==', username));
+      const existing = await getDocs(userQuery);
 
-    if (regularUsers.find((u: any) => u.username === username)) {
-      return { success: false, message: 'Username already exists' };
+      if (!existing.empty) {
+        return { success: false, message: 'Username already exists' };
+      }
+
+      await setDoc(doc(db, 'users', username), { username, password, createdAt: new Date() });
+
+      const userData = { username, role: 'user', isLoggedIn: true };
+      localStorage.setItem('sensey_user', JSON.stringify(userData));
+      setUser({ username, role: 'user' });
+      return { success: true };
+    } catch (err) {
+      console.error('Register error:', err);
+      return { success: false, message: 'Registration failed' };
     }
-
-    regularUsers.push({ username, password });
-    localStorage.setItem('sensey_users', JSON.stringify(regularUsers));
-
-    const userData = { username, role: 'user' as const, isLoggedIn: true };
-    localStorage.setItem('sensey_user', JSON.stringify(userData));
-    setUser({ username, role: 'user' });
-    return { success: true };
   };
 
   const sendMessage = async (message: string) => {
-    const newMessage: SupportMessage = {
-      id: Date.now().toString(),
-      username: user?.username || 'guest',
-      message,
-      timestamp: Date.now(),
-    };
+    try {
+      const db = getDB();
+      const messagesRef = collection(db, 'support_messages');
+      
+      await addDoc(messagesRef, {
+        username: user?.username || 'guest',
+        message,
+        timestamp: new Date(),
+        reply: null
+      });
 
-    const updated = [...supportMessages, newMessage];
-    setSupportMessages(updated);
-    localStorage.setItem('sensey_support_messages', JSON.stringify(updated));
+      await loadSupportMessages();
+    } catch (err) {
+      console.error('Send message error:', err);
+    }
   };
 
   const adminReply = async (messageId: string, reply: string) => {
-    const updated = supportMessages.map((msg) =>
-      msg.id === messageId ? { ...msg, reply } : msg
-    );
-    setSupportMessages(updated);
-    localStorage.setItem('sensey_support_messages', JSON.stringify(updated));
+    try {
+      const db = getDB();
+      await updateDoc(doc(db, 'support_messages', messageId), {
+        reply,
+        repliedAt: new Date()
+      });
+      await loadSupportMessages();
+    } catch (err) {
+      console.error('Reply error:', err);
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const db = getDB();
+      await deleteDoc(doc(db, 'support_messages', messageId));
+      await loadSupportMessages();
+    } catch (err) {
+      console.error('Delete message error:', err);
+    }
   };
 
   const markAsRead = () => {
     setLastRead(Date.now());
     localStorage.setItem('sensey_support_last_read', Date.now().toString());
-  };
-
-  const addAdminUser = async (username: string, password: string) => {
-    const updated = [...adminUsers, { username, password }];
-    setAdminUsers(updated);
-    localStorage.setItem('sensey_admin_users', JSON.stringify(updated));
-  };
-
-  const removeAdminUser = async (username: string) => {
-    if (username === 'qwertyu') return;
-    const updated = adminUsers.filter(u => u.username !== username);
-    setAdminUsers(updated);
-    localStorage.setItem('sensey_admin_users', JSON.stringify(updated));
-  };
-
-  const addVendorUser = async (username: string, password: string) => {
-    const updated = [...vendorUsers, { username, password }];
-    setVendorUsers(updated);
-    localStorage.setItem('sensey_vendor_users', JSON.stringify(updated));
-  };
-
-  const removeVendorUser = async (username: string) => {
-    const updated = vendorUsers.filter(u => u.username !== username);
-    setVendorUsers(updated);
-    localStorage.setItem('sensey_vendor_users', JSON.stringify(updated));
   };
 
   const unreadCount = supportMessages.filter((msg) => msg.timestamp > lastRead && msg.username !== 'admin').length;
@@ -202,16 +224,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supportMessages,
       sendMessage,
       adminReply,
+      deleteMessage,
       markAsRead,
       unreadCount,
-      adminUsers,
-      vendorUsers,
-      addAdminUser,
-      removeAdminUser,
-      addVendorUser,
-      removeVendorUser,
     }),
-    [user, supportMessages, unreadCount, adminUsers, vendorUsers]
+    [user, supportMessages, unreadCount]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

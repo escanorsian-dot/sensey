@@ -14,7 +14,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [userType, setUserType] = useState<'user' | 'vendor'>('user');
   const [formData, setFormData] = useState<LoginCredentials & { confirmPassword?: string }>({
     username: '',
     password: '',
@@ -37,7 +36,13 @@ export default function LoginPage() {
     if (isLogin) {
       const result = await login(formData.username, formData.password);
       if (result.success) {
-        router.push('/');
+        if (result.role === 'admin') {
+          router.push('/admin');
+        } else if (result.role === 'vendor') {
+          router.push('/vendor');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.message || 'Invalid credentials');
       }
@@ -62,40 +67,20 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
-          {!isLogin && (
-            <div className="mb-5">
-              <label className="block text-sm font-bold text-gray-700 mb-2">I am a:</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUserType('user')}
-                  className={`flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition-all ${
-                    userType === 'user'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
-                  }`}
-                >
-                  🛒 Customer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('vendor')}
-                  className={`flex-1 py-2 px-4 rounded-xl font-semibold text-sm transition-all ${
-                    userType === 'vendor'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
-                  }`}
-                >
-                  🏪 Vendor
-                </button>
-              </div>
-              {userType === 'vendor' && (
-                <p className="text-xs text-amber-600 mt-2 text-center">
-                  Note: Vendor accounts require admin approval
-                </p>
-              )}
-            </div>
-          )}
+          <div className="flex gap-3 mb-6">
+            <Link href="/login/admin" className="flex-1 py-2 px-3 bg-slate-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-slate-700 transition-colors">
+              ⚙️ Admin
+            </Link>
+            <Link href="/login/vendor" className="flex-1 py-2 px-3 bg-emerald-600 text-white rounded-xl font-semibold text-sm text-center hover:bg-emerald-700 transition-colors">
+              🏪 Vendor
+            </Link>
+          </div>
+
+          <div className="border-t border-slate-200 my-6"></div>
+
+          <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
+            {isLogin ? 'Customer Login' : 'Customer Sign Up'}
+          </h3>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
