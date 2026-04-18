@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { getDB } from '@/lib/firebase';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 
 interface ValidUTR {
   id: string;
@@ -24,17 +26,28 @@ export default function SubmitReceiptPage() {
   const [receiptSubmitted, setReceiptSubmitted] = useState(false);
 
   useEffect(() => {
-    const storedUTRs = localStorage.getItem('sensey_valid_utrs');
-    if (storedUTRs) {
-      const parsed = JSON.parse(storedUTRs) as ValidUTR[];
-      const now = Date.now();
-      const valid = parsed.filter(utr => {
-        const age = now - utr.createdAt;
-        return age <= 24 * 60 * 60 * 1000;
-      });
-      setValidUTRs(valid);
-    }
+    loadUTRs();
   }, []);
+
+  const loadUTRs = async () => {
+    try {
+      const db = getDB();
+      const settingsDoc = await getDoc(doc(db, 'settings', 'utrs'));
+      
+      if (settingsDoc.exists()) {
+        const data = settingsDoc.data();
+        const utrs = data.utrs || [];
+        const now = Date.now();
+        const valid = utrs.filter((utr: ValidUTR) => {
+          const age = now - utr.createdAt;
+          return age <= 24 * 60 * 60 * 1000;
+        });
+        setValidUTRs(valid);
+      }
+    } catch (err) {
+      console.error('Failed to load UTRs:', err);
+    }
+  };
 
   const handleValidateUTR = () => {
     setIsValidating(true);

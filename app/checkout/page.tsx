@@ -28,9 +28,18 @@ export default function CheckoutPage() {
   const [orderComplete, setOrderComplete] = useState(false);
 
   useEffect(() => {
-    const storedQR = localStorage.getItem('sensey_payment_qr');
-    if (storedQR) setPaymentQR(storedQR);
+    fetchPaymentQR();
   }, []);
+
+  const fetchPaymentQR = async () => {
+    try {
+      const res = await fetch('/api/settings/payment');
+      const data = await res.json();
+      if (data.qrCode) setPaymentQR(data.qrCode);
+    } catch (err) {
+      console.error('Failed to fetch payment QR:', err);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

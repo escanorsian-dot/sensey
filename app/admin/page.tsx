@@ -39,26 +39,79 @@ export default function AdminPage() {
   const [validUTRs, setValidUTRs] = useState<Array<{ id: string; utr: string; createdAt: number }>>([]);
   const [newUTR, setNewUTR] = useState('');
   const [utrMessage, setUtrMessage] = useState<string | null>(null);
+  const [isLoadingUTRs, setIsLoadingUTRs] = useState(false);
 
   useEffect(() => {
-    const storedQR = localStorage.getItem('sensey_payment_qr');
-    if (storedQR) setPaymentQR(storedQR);
+    fetchPaymentQR();
+    loadReceipts();
+    loadUTRs();
+  }, []);
 
+  const fetchPaymentQR = async () => {
+    try {
+      const res = await fetch('/api/settings/payment');
+      const data = await res.json();
+      if (data.qrCode) setPaymentQR(data.qrCode);
+    } catch (err) {
+      console.error('Failed to fetch payment QR:', err);
+    }
+  };
+
+  const loadReceipts = () => {
     const storedReceipts = localStorage.getItem('sensey_receipts');
     if (storedReceipts) setReceipts(JSON.parse(storedReceipts));
+  };
 
-    const storedUTRs = localStorage.getItem('sensey_valid_utrs');
-    if (storedUTRs) {
-      const parsed = JSON.parse(storedUTRs) as { id: string; utr: string; createdAt: number }[];
-      const now = Date.now();
-      const valid = parsed.filter(utr => {
-        const age = now - utr.createdAt;
-        return age <= 24 * 60 * 60 * 1000;
-      });
-      setValidUTRs(valid);
-      localStorage.setItem('sensey_valid_utrs', JSON.stringify(valid));
+const loadUTRs = async () => {
+    try {
+      const res = await fetch('/api/settings/utrs');
+      const data = await res.json();
+      if (data.utrs) {
+        const now = Date.now();
+        const valid = data.utrs.filter((utr: any) => {
+          const age = now - utr.createdAt;
+          return age <= 24 * 60 * 60 * 1000;
+        });
+        setValidUTRs(valid);
+      }
+    } catch (err) {
+      console.error('Failed to load UTRs:', err);
     }
-  }, []);
+  };
+
+  const handleAddUTR = async () => {
+    if (!newUTR.trim()) return;
+    
+    try {
+      setIsLoadingUTRs(true);
+      const res = await fetch('/api/settings/utrs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ utr: newUTR.trim() }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setValidUTRs(prev => [...prev, data.utr]);
+        setNewUTR('');
+        setUtrMessage('UTR added successfully! Valid for 24 hours.');
+        setTimeout(() => setUtrMessage(null), 3000);
+      }
+    } catch (err) {
+      setUtrMessage('Failed to add UTR');
+    } finally {
+      setIsLoadingUTRs(false);
+    }
+  };
+
+  const handleRemoveUTR = async (id: string) => {
+    try {
+      await fetch(`/api/settings/utrs?id=${id}`, { method: 'DELETE' });
+      setValidUTRs(prev => prev.filter(u => u.id !== id));
+    } catch (err) {
+      console.error('Failed to remove UTR:', err);
+    }
+  };
 
   const handleQRChange = (file: File | null) => {
     setQrFile(file);
@@ -83,7 +136,13 @@ export default function AdminPage() {
       if (!response.ok) throw new Error('Upload failed');
 
       const data = await response.json();
-      localStorage.setItem('sensey_payment_qr', data.url);
+      
+      await fetch('/api/settings/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrCode: data.url }),
+      });
+      
       setPaymentQR(data.url);
       setQrMessage('QR code uploaded successfully!');
       setQrFile(null);
@@ -157,29 +216,6 @@ export default function AdminPage() {
     } catch {
       setSubmitError('Failed to remove product.');
     }
-  };
-
-  const handleAddUTR = () => {
-    if (!newUTR.trim()) return;
-    
-    const newUtrEntry = {
-      id: Date.now().toString(),
-      utr: newUTR.trim(),
-      createdAt: Date.now(),
-    };
-    
-    const updated = [...validUTRs, newUtrEntry];
-    setValidUTRs(updated);
-    localStorage.setItem('sensey_valid_utrs', JSON.stringify(updated));
-    setNewUTR('');
-    setUtrMessage('UTR added successfully! Valid for 24 hours.');
-    setTimeout(() => setUtrMessage(null), 3000);
-  };
-
-  const handleRemoveUTR = (id: string) => {
-    const updated = validUTRs.filter(u => u.id !== id);
-    setValidUTRs(updated);
-    localStorage.setItem('sensey_valid_utrs', JSON.stringify(updated));
   };
 
   const tabLabels = {
@@ -469,8 +505,8 @@ export default function AdminPage() {
                           />
                         </div>
                         <button
-                          onClick={() => {
-                            localStorage.removeItem('sensey_payment_qr');
+                          onClick={async () => {
+                            await fetch('/api/settings/payment', { method: 'DELETE' });
                             setPaymentQR(null);
                           }}
                           className="w-full py-2 md:py-3 bg-rose-100 text-rose-700 rounded-lg md:rounded-xl font-bold hover:bg-rose-200 transition-all hover:scale-105 active:scale-95"
@@ -636,10 +672,10 @@ export default function AdminPage() {
                     />
                     <button
                       onClick={handleAddUTR}
-                      disabled={!newUTR.trim()}
+                      disabled={!newUTR.trim() || isLoadingUTRs}
                       className="px-6 py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
                     >
-                      ➕ Add UTR
+                      {isLoadingUTRs ? '⏳' : '➕ Add UTR'}
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-3">

@@ -1,68 +1,14 @@
-# Sensey - E-commerce Website
+# Sensey - E-commerce Store
 
-A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, and Supabase for real-time database and image storage.
+A modern e-commerce website built with Next.js, TypeScript, and Tailwind CSS.
 
 ## Features
 
 - Product listing and details
-- Shopping cart functionality
-- Checkout flow placeholder
-- Vendor dashboard for adding products
-- Supabase database for products and real-time sync
-- Image storage on Supabase
-- Responsive design
-
-## Getting Started
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. **Set up Supabase** (Required):
-   - Create a [Supabase](https://supabase.com) account and project
-   - Copy `.env.example` to `.env.local` and add your Supabase credentials:
-     ```env
-     NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-     ```
-   - Follow the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) guide to:
-     - Create the `products` table
-     - Set up Row Level Security policies
-     - Create the `product-images` storage bucket
-   - See [SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md) to verify everything is configured correctly
-
-3. Run the development server:
-```bash
-npm run dev
-```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Supabase Setup
-
-The app requires Supabase for:
-- **Database**: Storing product information in a `products` table
-- **Storage**: Storing product images in a `product-images` bucket
-- **Real-time sync**: Live updates when products are added/removed
-
-👉 **See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions**
-
-### Required Supabase Components
-
-✅ **Products Table** with fields:
-- id, name, price, image, images[], description, vendor, owner_id, created_at, updated_at
-
-✅ **Row Level Security Policies** (4 total):
-- Public read access
-- Public insert access
-- User update permissions
-- User delete permissions
-
-✅ **Product Images Storage Bucket**:
-- Bucket name: `product-images`
-- Access level: Public
-- With appropriate upload, download, and delete policies
+- Shopping cart functionality  
+- Checkout with UPI payment
+- Submit receipt with UTR verification
+- Admin panel for product & payment management
 
 ## Pages
 
@@ -71,30 +17,32 @@ The app requires Supabase for:
 - `/products/[id]` - Individual product details
 - `/vendor` - Vendor page to add products
 - `/cart` - Shopping cart
-- `/checkout` - Checkout form
-- `/admin` - Product management panel
+- `/checkout` - Checkout with UPI payment
+- `/submit-receipt` - Submit payment receipt (UTR verification)
+- `/admin` - Product & payment management
 
-## Payment Integration
+## Payment Setup
 
-The checkout form is currently a demo. To add real payments:
+Admin can upload a UPI QR code in the Admin panel. Customers scan it to pay via any UPI app (Google Pay, PhonePe, Paytm, etc.).
 
-1. Sign up for a Stripe account
-2. Add a backend order flow
-3. Replace the demo payment logic with actual Stripe integration
+After payment, customers must:
+1. Enter a valid UTR number (provided by admin after payment)
+2. Submit their payment receipt screenshot
 
-## Technologies Used
+Each UTR is valid for 24 hours.
+
+## Tech Stack
 
 - Next.js 16
 - React 19
 - TypeScript
 - Tailwind CSS
-- Supabase (Database & Storage)
-- Context API for app state
 
-## Deploy on Vercel
+## Run Locally
 
-The easiest way to deploy this app is on Vercel. After the environment variables are set, redeploy the site so Supabase is available in production.
+```bash
+npm install
+npm run dev
+```
 
----
-
-**Having issues?** Check [SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md) for troubleshooting.
+Open [http://localhost:3000](http://localhost:3000)
