@@ -1,6 +1,6 @@
 # Sensey - E-commerce Store
 
-A modern e-commerce website built with Next.js, TypeScript, and Tailwind CSS.
+A modern e-commerce website built with Next.js, TypeScript, Tailwind CSS, Firebase, and Cloudinary.
 
 ## Features
 
@@ -37,6 +37,8 @@ Each UTR is valid for 24 hours.
 - React 19
 - TypeScript
 - Tailwind CSS
+- Firebase (Firestore for data)
+- Cloudinary (Image storage)
 
 ## Run Locally
 
