@@ -20,6 +20,9 @@ export default function Header() {
             <Link href="/products" className="text-gray-700 hover:text-gray-900">
               Products
             </Link>
+            <Link href="/submit-receipt" className="text-gray-700 hover:text-gray-900 font-medium">
+              Submit Receipt
+            </Link>
             <Link href="/admin" className="text-gray-700 hover:text-gray-900">
               Admin
             </Link>

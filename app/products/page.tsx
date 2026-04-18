@@ -3,15 +3,48 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useProducts } from '../products-context';
+import { useCart } from '../cart-context';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 function formatCurrency(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function AddToCartButton({ product, onAdd }: { product: any; onAdd: () => void }) {
+  const [isAdding, setIsAdding] = useState(false);
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsAdding(true);
+    onAdd();
+    setTimeout(() => setIsAdding(false), 1000);
+  };
+  
+  return (
+    <button
+      onClick={handleClick}
+      className={`p-2 rounded-full transition-all transform hover:scale-110 ${
+        isAdding ? 'bg-emerald-500 scale-110' : 'bg-amber-400 hover:bg-amber-500'
+      }`}
+      title="Add to cart"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    </button>
+  );
+}
+
 export default function ProductsPage() {
   const { products } = useProducts();
+  const { dispatch } = useCart();
   const router = useRouter();
+
+  const handleAddToCart = (product: any) => {
+    dispatch({ type: 'ADD_ITEM', payload: product });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
@@ -71,9 +104,13 @@ export default function ProductsPage() {
                   )}
                   <p className="text-sm text-gray-600 line-clamp-2 mb-4">{product.description}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white bg-indigo-600 px-4 py-2 rounded-full group-hover:bg-indigo-700 transition-colors">
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="text-xs font-semibold text-white bg-indigo-600 px-4 py-2 rounded-full group-hover:bg-indigo-700 transition-colors"
+                    >
                       View Details →
-                    </span>
+                    </Link>
+                    <AddToCartButton product={product} onAdd={() => handleAddToCart(product)} />
                   </div>
                 </div>
               </Link>

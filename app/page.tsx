@@ -3,26 +3,66 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useProducts } from './products-context';
+import { useCart } from './cart-context';
+import { useState } from 'react';
 
 function formatCurrency(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function AddToCartButton({ product, onAdd }: { product: any; onAdd: () => void }) {
+  const [isAdding, setIsAdding] = useState(false);
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsAdding(true);
+    onAdd();
+    setTimeout(() => setIsAdding(false), 1000);
+  };
+  
+  return (
+    <button
+      onClick={handleClick}
+      className={`p-2 rounded-full transition-all transform hover:scale-110 ${
+        isAdding ? 'bg-emerald-500 scale-110' : 'bg-amber-400 hover:bg-amber-500'
+      }`}
+      title="Add to cart"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    </button>
+  );
+}
+
 export default function Home() {
   const { products } = useProducts();
+  const { dispatch } = useCart();
+
+  const handleAddToCart = (product: any) => {
+    dispatch({ type: 'ADD_ITEM', payload: product });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        <div className="text-center mb-10 md:mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold mb-6">
-            <span>✨</span> Welcome to our store
+        <div className="text-center mb-10 md:mb-12">
+          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold mb-6 animate-bounce-soft">
+            <span>✨</span> 
+            <span className="typewriter-text overflow-hidden border-r-2 border-indigo-400 inline-block whitespace-nowrap animate-[typeReveal_2s_ease-out_forwards]">
+              Welcome to our store
+            </span>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight mb-4">
-            Discover Amazing
-            <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Products</span>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight mb-4 overflow-hidden">
+            <span className="block animate-[slideUp_0.8s_ease-out_forwards] opacity-0" style={{ animationDelay: '0.2s' }}>
+              Discover Amazing
+            </span>
+            <span className="block bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient mt-2">
+              Products
+            </span>
           </h1>
-          <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto">
+          <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto opacity-0 animate-[fadeIn_1s_ease-out_forwards]" style={{ animationDelay: '0.5s' }}>
             Shop the best products at unbeatable prices. Quality guaranteed with easy returns.
           </p>
         </div>
@@ -73,9 +113,13 @@ export default function Home() {
                     )}
                     <p className="text-sm text-gray-600 line-clamp-2 mb-4">{product.description}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white bg-indigo-600 px-4 py-2 rounded-full group-hover:bg-indigo-700 transition-colors">
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="text-xs font-semibold text-white bg-indigo-600 px-4 py-2 rounded-full group-hover:bg-indigo-700 transition-colors"
+                      >
                         View Details →
-                      </span>
+                      </Link>
+                      <AddToCartButton product={product} onAdd={() => handleAddToCart(product)} />
                     </div>
                   </div>
                 </Link>

@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs'>('products');
   const [mobileTabOpen, setMobileTabOpen] = useState(false);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
@@ -34,7 +34,11 @@ export default function AdminPage() {
   const [isUploadingQR, setIsUploadingQR] = useState(false);
   const [qrMessage, setQrMessage] = useState<string | null>(null);
 
-  const [receipts, setReceipts] = useState<Array<{ id: string; imageUrl: string; timestamp: number }>>([]);
+  const [receipts, setReceipts] = useState<Array<{ id: string; imageUrl: string; timestamp: number; utr?: string }>>([]);
+
+  const [validUTRs, setValidUTRs] = useState<Array<{ id: string; utr: string; createdAt: number }>>([]);
+  const [newUTR, setNewUTR] = useState('');
+  const [utrMessage, setUtrMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const storedQR = localStorage.getItem('sensey_payment_qr');
@@ -42,6 +46,18 @@ export default function AdminPage() {
 
     const storedReceipts = localStorage.getItem('sensey_receipts');
     if (storedReceipts) setReceipts(JSON.parse(storedReceipts));
+
+    const storedUTRs = localStorage.getItem('sensey_valid_utrs');
+    if (storedUTRs) {
+      const parsed = JSON.parse(storedUTRs) as { id: string; utr: string; createdAt: number }[];
+      const now = Date.now();
+      const valid = parsed.filter(utr => {
+        const age = now - utr.createdAt;
+        return age <= 24 * 60 * 60 * 1000;
+      });
+      setValidUTRs(valid);
+      localStorage.setItem('sensey_valid_utrs', JSON.stringify(valid));
+    }
   }, []);
 
   const handleQRChange = (file: File | null) => {
@@ -143,10 +159,34 @@ export default function AdminPage() {
     }
   };
 
+  const handleAddUTR = () => {
+    if (!newUTR.trim()) return;
+    
+    const newUtrEntry = {
+      id: Date.now().toString(),
+      utr: newUTR.trim(),
+      createdAt: Date.now(),
+    };
+    
+    const updated = [...validUTRs, newUtrEntry];
+    setValidUTRs(updated);
+    localStorage.setItem('sensey_valid_utrs', JSON.stringify(updated));
+    setNewUTR('');
+    setUtrMessage('UTR added successfully! Valid for 24 hours.');
+    setTimeout(() => setUtrMessage(null), 3000);
+  };
+
+  const handleRemoveUTR = (id: string) => {
+    const updated = validUTRs.filter(u => u.id !== id);
+    setValidUTRs(updated);
+    localStorage.setItem('sensey_valid_utrs', JSON.stringify(updated));
+  };
+
   const tabLabels = {
     products: { icon: '📦', label: 'Products' },
     payments: { icon: '💳', label: 'Payments' },
     receipts: { icon: '📋', label: `Receipts${receipts.length > 0 ? ` (${receipts.length})` : ''}` },
+    utrs: { icon: '🔑', label: `UTRs${validUTRs.length > 0 ? ` (${validUTRs.length})` : ''}` },
   };
 
   return (
@@ -240,6 +280,16 @@ export default function AdminPage() {
             >
               📋 Receipts {receipts.length > 0 && `(${receipts.length})`}
             </button>
+            <button
+              onClick={() => setActiveTab('utrs')}
+              className={`flex-1 px-6 py-4 text-sm font-bold transition-all ${
+                activeTab === 'utrs'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              🔑 UTRs {validUTRs.length > 0 && `(${validUTRs.length})`}
+            </button>
           </div>
 
           <div className="md:hidden">
@@ -252,7 +302,7 @@ export default function AdminPage() {
             </button>
             {mobileTabOpen && (
               <div className="border-t border-slate-100 bg-white">
-                {(['products', 'payments', 'receipts'] as const).map((tab) => (
+                {(['products', 'payments', 'receipts', 'utrs'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => {
@@ -551,6 +601,105 @@ export default function AdminPage() {
                       <p className="text-sm text-indigo-700 mt-1">
                         After a customer pays via QR code, they can submit their payment screenshot as a receipt. 
                         You can verify and approve these receipts from this section.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'utrs' && (
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">Valid UTR Numbers</h2>
+                  <p className="text-gray-500 mt-1">Manage UTR numbers that customers can use to submit receipts</p>
+                </div>
+
+                {utrMessage && (
+                  <div className={`px-6 py-4 rounded-xl md:rounded-2xl font-semibold flex items-center gap-3 ${
+                    utrMessage.includes('success') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    <span className="text-xl">{utrMessage.includes('success') ? '✅' : '❌'}</span>
+                    {utrMessage}
+                  </div>
+                )}
+
+                <div className="bg-slate-50 rounded-2xl md:rounded-3xl p-6 md:p-8 border-2 border-slate-100">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Add New UTR</h3>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={newUTR}
+                      onChange={(e) => setNewUTR(e.target.value)}
+                      className="flex-1 p-3 md:p-4 bg-white border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-mono text-gray-900 placeholder:text-gray-400"
+                      placeholder="Enter UTR number"
+                    />
+                    <button
+                      onClick={handleAddUTR}
+                      disabled={!newUTR.trim()}
+                      className="px-6 py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
+                    >
+                      ➕ Add UTR
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3">
+                    UTRs will be valid for 24 hours from creation
+                  </p>
+                </div>
+
+                {validUTRs.length === 0 ? (
+                  <div className="text-center py-12 md:py-16 bg-slate-50 rounded-2xl md:rounded-3xl border-2 border-dashed border-slate-200">
+                    <span className="text-5xl md:text-6xl block mb-4">🔑</span>
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">No UTRs yet</h3>
+                    <p className="text-gray-500 max-w-md mx-auto text-sm md:text-base px-4">
+                      Add UTR numbers above so customers can submit their payment receipts.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {validUTRs.map((utr) => {
+                      const age = Date.now() - utr.createdAt;
+                      const hoursLeft = Math.floor((24 * 60 * 60 * 1000 - age) / (1000 * 60 * 60));
+                      const minutesLeft = Math.floor(((24 * 60 * 60 * 1000 - age) % (1000 * 60 * 60)) / (1000 * 60));
+                      const isExpiringSoon = hoursLeft < 1;
+                      
+                      return (
+                        <div 
+                          key={utr.id}
+                          className={`bg-white border rounded-xl md:rounded-2xl p-4 shadow-md hover:shadow-xl transition-all ${
+                            isExpiringSoon ? 'border-amber-300 bg-amber-50' : 'border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-mono font-bold text-gray-900 text-lg">{utr.utr}</p>
+                              <p className={`text-sm font-semibold mt-1 ${
+                                isExpiringSoon ? 'text-amber-600' : 'text-gray-500'
+                              }`}>
+                                {hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft}m left` : `${minutesLeft}m left`}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveUTR(utr.id)}
+                              className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 transition-all hover:scale-110"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="bg-amber-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-amber-200">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl md:text-2xl">💡</span>
+                    <div>
+                      <p className="font-bold text-amber-800">How UTRs Work</p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        After a customer makes a payment, you can provide them with the UTR number from your bank statement.
+                        They can then use this UTR to submit their receipt. Each UTR is valid for 24 hours.
                       </p>
                     </div>
                   </div>
