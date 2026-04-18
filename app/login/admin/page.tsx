@@ -1,13 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '../../auth-context';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
-  const { login } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,12 +13,26 @@ export default function AdminLoginPage() {
     setError(null);
     setIsLoading(true);
 
-    const result = await login(formData.username, formData.password);
-    if (result.success && result.role === 'admin') {
-      window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: 'admin', isLoggedIn: true }));
-      window.location.href = '/admin';
-    } else {
-      setError(result.message || 'Invalid credentials');
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('sensey_user', JSON.stringify({
+          username: data.user.username,
+          role: 'admin',
+          isLoggedIn: true
+        }));
+        window.location.href = '/admin';
+      } else {
+        setError(data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
     }
 
     setIsLoading(false);
