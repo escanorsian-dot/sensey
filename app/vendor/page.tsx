@@ -10,12 +10,30 @@ export default function VendorPage() {
   const router = useRouter();
   const { addProduct, error: productError, isLoading } = useProducts();
   const { user, isLoggedIn } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
   
   useEffect(() => {
-    if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
-      router.push('/login');
-    }
+    const timer = setTimeout(() => {
+      if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
+        router.push('/login');
+      } else {
+        setIsChecking(false);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [isLoggedIn, user, router]);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold">Checking authorization...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn || (user?.role !== 'vendor' && user?.role !== 'admin')) {
     return null;

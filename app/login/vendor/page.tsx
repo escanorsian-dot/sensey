@@ -1,16 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../../auth-context';
 
 export default function VendorLoginPage() {
   const router = useRouter();
+  const { isLoggedIn, user } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isLoggedIn && (user?.role === 'vendor' || user?.role === 'admin')) {
+      router.replace('/vendor');
+    }
+  }, [isLoggedIn, user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -25,8 +33,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        window.localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'vendor', isLoggedIn: true }));
-        window.location.href = '/vendor';
+        localStorage.setItem('sensey_user', JSON.stringify({ username: data.user.username, role: 'vendor', isLoggedIn: true }));
+        window.location.replace('/vendor');
       } else {
         setError(data.message || 'Invalid credentials');
       }
@@ -37,6 +45,17 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     setIsLoading(false);
   };
+
+  if (isLoggedIn && (user?.role === 'vendor' || user?.role === 'admin')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center p-4">
+        <div className="text-center text-white">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-semibold">Redirecting to Vendor Panel...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center p-4">
