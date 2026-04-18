@@ -47,25 +47,28 @@ function ReplyForm({ messageId, onReply }: { messageId: string; onReply: (id: st
 
 export default function AdminPage() {
   const [isChecking, setIsChecking] = useState(true);
-  
+  const router = useRouter();
+  const { products, addProduct, removeProduct, error } = useProducts();
+  const { user: authUser, isLoggedIn: authLoggedIn, supportMessages, adminReply, markAsRead, unreadCount, deleteMessage } = useAuth();
+
   useEffect(() => {
     const stored = localStorage.getItem('sensey_user');
     if (!stored) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     try {
       const userData = JSON.parse(stored);
       if (!userData.isLoggedIn || userData.role !== 'admin') {
-        window.location.href = '/login';
+        router.push('/login');
         return;
       }
     } catch (e) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     setIsChecking(false);
-  }, []);
+  }, [router]);
 
   if (isChecking) {
     return (
@@ -77,18 +80,6 @@ export default function AdminPage() {
       </div>
     );
   }
-
-  const { products, addProduct, removeProduct, error } = { products: [] as any[], addProduct: async (_: any) => {}, removeProduct: async (_: any, __?: any) => {}, error: null };
-  const { user: authUser, isLoggedIn: authLoggedIn, supportMessages, adminReply, markAsRead, unreadCount, deleteMessage } = { 
-    user: null as any, 
-    isLoggedIn: true, 
-    supportMessages: [] as any[], 
-    adminReply: async (_: any, __: any) => {}, 
-    markAsRead: () => {}, 
-    unreadCount: 0, 
-    deleteMessage: async (_: any) => {} 
-  };
-  const router = { push: (_?: string | undefined) => void 0 };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -200,8 +191,18 @@ export default function AdminPage() {
   };
 
   const loadReceipts = () => {
-    const storedReceipts = localStorage.getItem('sensey_receipts');
-    if (storedReceipts) setReceipts(JSON.parse(storedReceipts));
+    try {
+      const storedReceipts = localStorage.getItem('sensey_receipts');
+      if (storedReceipts) {
+        const parsed = JSON.parse(storedReceipts);
+        if (Array.isArray(parsed)) {
+          setReceipts(parsed);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to parse receipts:', err);
+      setReceipts([]);
+    }
   };
 
 const loadUTRs = async () => {

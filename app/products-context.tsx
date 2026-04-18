@@ -67,13 +67,13 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (data && Array.isArray(data)) {
         setProducts(data.map((p: any) => ({
           id: p.id || p._id || '',
-          name: p.name,
-          price: Number(p.price),
-          image: p.image,
-          images: p.images || [],
-          description: p.description,
-          vendor: p.vendor,
-          createdBy: p.owner_id,
+          name: p.name || 'Unknown Product',
+          price: Number(p.price) || 0,
+          image: p.image || 'https://picsum.photos/300/200?random=error',
+          images: Array.isArray(p.images) ? p.images : [],
+          description: p.description || '',
+          vendor: p.vendor || 'Unknown Vendor',
+          createdBy: p.owner_id || 'anonymous',
           createdAt: p.createdAt
         })));
       }

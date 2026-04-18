@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from './cart-context';
 import { useAuth } from './auth-context';
@@ -11,6 +11,14 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
+  const [lastRead, setLastRead] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('sensey_support_last_read');
+      if (stored) setLastRead(parseInt(stored));
+    }
+  }, []);
 
   const navItems = [
     { href: '/', label: 'Home' },
@@ -20,7 +28,7 @@ export default function Header() {
   ];
 
   const userMessages = supportMessages.filter(msg => msg.username === user?.username);
-  const hasUnreadReplies = userMessages.some(msg => msg.reply && msg.timestamp > parseInt(localStorage.getItem('sensey_support_last_read') || '0'));
+  const hasUnreadReplies = userMessages.some(msg => msg.reply && msg.timestamp > lastRead);
 
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
