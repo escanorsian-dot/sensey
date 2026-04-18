@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
+import ImageCropperModal from '../components/image-cropper';
 
 export default function VendorPage() {
   const router = useRouter();
@@ -21,15 +22,36 @@ export default function VendorPage() {
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageIndex, setCropperImageIndex] = useState<number | null>(null);
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleFileChange = (index: number, file: File | null) => {
-    const newFiles = [...imageFiles];
-    newFiles[index] = file;
-    setImageFiles(newFiles);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCropperImageSrc(e.target?.result as string);
+        setCropperImageIndex(index);
+        setCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    if (cropperImageIndex !== null) {
+      const newFiles = [...imageFiles];
+      newFiles[cropperImageIndex] = croppedFile;
+      setImageFiles(newFiles);
+    }
+    setCropperOpen(false);
+    setCropperImageIndex(null);
+    setCropperImageSrc(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -212,6 +234,18 @@ export default function VendorPage() {
             </div>
           </div>
         </div>
+
+        {cropperOpen && cropperImageSrc && (
+          <ImageCropperModal
+            imageSrc={cropperImageSrc}
+            onCrop={handleCropComplete}
+            onCancel={() => {
+              setCropperOpen(false);
+              setCropperImageIndex(null);
+              setCropperImageSrc(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

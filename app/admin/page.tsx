@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { uploadProductImage } from '../../lib/product-images';
 import { useProducts } from '../products-context';
+import ImageCropperModal from '../components/image-cropper';
 
 function formatCurrency(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -28,6 +29,10 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'payments' | 'receipts' | 'utrs'>('products');
   const [mobileTabOpen, setMobileTabOpen] = useState(false);
+
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageIndex, setCropperImageIndex] = useState<number | null>(null);
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null);
 
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -163,9 +168,26 @@ const loadUTRs = async () => {
   };
 
   const handleFileChange = (index: number, file: File | null) => {
-    const newFiles = [...imageFiles];
-    newFiles[index] = file;
-    setImageFiles(newFiles);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCropperImageSrc(e.target?.result as string);
+        setCropperImageIndex(index);
+        setCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    if (cropperImageIndex !== null) {
+      const newFiles = [...imageFiles];
+      newFiles[cropperImageIndex] = croppedFile;
+      setImageFiles(newFiles);
+    }
+    setCropperOpen(false);
+    setCropperImageIndex(null);
+    setCropperImageSrc(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -795,6 +817,18 @@ const loadUTRs = async () => {
             </div>
           )}
         </div>
+
+        {cropperOpen && cropperImageSrc && (
+          <ImageCropperModal
+            imageSrc={cropperImageSrc}
+            onCrop={handleCropComplete}
+            onCancel={() => {
+              setCropperOpen(false);
+              setCropperImageIndex(null);
+              setCropperImageSrc(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );
