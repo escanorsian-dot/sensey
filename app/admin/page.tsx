@@ -917,9 +917,9 @@ const loadUTRs = async () => {
                         <p className="text-gray-700 mb-4">{msg.message}</p>
                         
                         {msg.reply ? (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                            <p className="text-xs font-bold text-emerald-700 mb-1">Your Response:</p>
-                            <p className="text-sm text-emerald-800">{msg.reply}</p>
+                          <div className="bg-indigo-600 border border-indigo-700 rounded-xl p-3">
+                            <p className="text-xs font-bold text-indigo-200 mb-1">📨 Your Response:</p>
+                            <p className="text-sm text-white font-medium">{msg.reply}</p>
                           </div>
                         ) : (
                           <ReplyForm messageId={msg.id} onReply={adminReply} />

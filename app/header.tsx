@@ -7,7 +7,7 @@ import { useAuth } from './auth-context';
 
 export default function Header() {
   const { state } = useCart();
-  const { user, isLoggedIn, logout, sendMessage, unreadCount } = useAuth();
+  const { user, isLoggedIn, logout, supportMessages, sendMessage, unreadCount } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
@@ -19,12 +19,14 @@ export default function Header() {
     { href: '/vendor', label: 'Sell' },
   ];
 
+  const userMessages = supportMessages.filter(msg => msg.username === user?.username);
+  const hasUnreadReplies = userMessages.some(msg => msg.reply && msg.timestamp > parseInt(localStorage.getItem('sensey_support_last_read') || '0'));
+
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (supportMessage.trim()) {
       sendMessage(supportMessage);
       setSupportMessage('');
-      setSupportOpen(false);
       alert('Message sent! We will get back to you soon.');
     }
   };
@@ -56,27 +58,55 @@ export default function Header() {
                 >
                   <span className="text-base">💬</span>
                   <span className="hidden lg:inline">Support</span>
-                  {unreadCount > 0 && (
+                  {(unreadCount > 0 || hasUnreadReplies) && (
                     <span className="bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
-                      {unreadCount}
+                      {unreadCount + (hasUnreadReplies ? 1 : 0)}
                     </span>
                   )}
                 </button>
                 
                 {supportOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-slide-up z-50">
-                    <h4 className="font-bold text-gray-900 mb-3">Contact Support</h4>
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-slide-up z-50">
+                    <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      💬 Support Chat
+                    </h4>
+                    
+                    {userMessages.length > 0 ? (
+                      <div className="space-y-3 max-h-64 overflow-y-auto mb-3">
+                        {userMessages.map((msg) => (
+                          <div key={msg.id} className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-semibold text-gray-500">You</span>
+                              <span className="text-[10px] text-gray-400">{new Date(msg.timestamp).toLocaleDateString()}</span>
+                            </div>
+                            <p className="text-sm text-gray-800">{msg.message}</p>
+                            {msg.reply && (
+                              <div className="mt-2 pt-2 border-t border-slate-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="text-[10px] font-semibold text-emerald-600">📨 Admin replied:</span>
+                                </div>
+                                <p className="text-sm text-emerald-800 font-medium">{msg.reply}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 mb-3">No messages yet</p>
+                    )}
+
                     <form onSubmit={handleSupportSubmit}>
                       <textarea
                         value={supportMessage}
                         onChange={(e) => setSupportMessage(e.target.value)}
-                        placeholder="Describe your issue..."
-                        className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm mb-3 resize-none text-gray-900"
-                        rows={3}
+                        placeholder="Type your message..."
+                        className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm mb-2 resize-none text-gray-900"
+                        rows={2}
                       />
                       <button
                         type="submit"
-                        className="w-full py-2 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700"
+                        disabled={!supportMessage.trim()}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 disabled:opacity-50"
                       >
                         Send Message
                       </button>
@@ -171,19 +201,31 @@ export default function Header() {
             
             {isLoggedIn && supportOpen && (
               <div className="px-2 pb-2">
+                {userMessages.length > 0 && (
+                  <div className="space-y-2 mb-2 max-h-32 overflow-y-auto">
+                    {userMessages.map((msg) => (
+                      <div key={msg.id} className="bg-slate-50 rounded-lg p-2">
+                        <p className="text-xs text-gray-800">{msg.message}</p>
+                        {msg.reply && (
+                          <p className="text-xs text-emerald-700 font-medium mt-1">↩️ {msg.reply}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <form onSubmit={handleSupportSubmit}>
                   <textarea
                     value={supportMessage}
                     onChange={(e) => setSupportMessage(e.target.value)}
-                    placeholder="Describe your issue..."
-                    className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm mb-2 resize-none text-gray-900"
-                    rows={3}
+                    placeholder="Type message..."
+                    className="w-full p-2 bg-slate-50 border rounded-lg text-sm mb-1 text-gray-900"
+                    rows={2}
                   />
                   <button
                     type="submit"
-                    className="w-full py-2 bg-indigo-600 text-white rounded-xl font-semibold text-sm"
+                    className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold"
                   >
-                    Send Message
+                    Send
                   </button>
                 </form>
               </div>

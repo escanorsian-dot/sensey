@@ -36,20 +36,14 @@ export default function LoginPage() {
     if (isLogin) {
       const result = await login(formData.username, formData.password);
       if (result.success) {
-        if (result.role === 'admin') {
-          router.push('/admin');
-        } else if (result.role === 'vendor') {
-          router.push('/vendor');
-        } else {
-          router.push('/');
-        }
+        window.location.href = result.role === 'admin' ? '/admin' : result.role === 'vendor' ? '/vendor' : '/';
       } else {
         setError(result.message || 'Invalid credentials');
       }
     } else {
       const result = await register(formData.username, formData.password);
       if (result.success) {
-        router.push('/');
+        window.location.href = '/';
       } else {
         setError(result.message || 'Registration failed');
       }
