@@ -1,20 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../auth-context';
 import Link from 'next/link';
 
-interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState<LoginCredentials & { confirmPassword?: string }>({
+  const [formData, setFormData] = useState({
     username: '',
     password: '',
     confirmPassword: '',
@@ -34,20 +25,48 @@ export default function LoginPage() {
     }
 
     if (isLogin) {
-      const result = await login(formData.username, formData.password);
-      if (result.success) {
-        window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: result.role, isLoggedIn: true }));
-        window.location.href = result.role === 'admin' ? '/admin' : result.role === 'vendor' ? '/vendor' : '/';
-      } else {
-        setError(result.message || 'Invalid credentials');
+      try {
+        const res = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          window.localStorage.setItem('sensey_user', JSON.stringify({
+            username: formData.username,
+            role: 'admin',
+            isLoggedIn: true
+          }));
+          window.location.href = '/admin';
+        } else {
+          setError(data.message || 'Invalid credentials');
+        }
+      } catch (err) {
+        setError('Login failed. Please try again.');
       }
     } else {
-      const result = await register(formData.username, formData.password);
-      if (result.success) {
-        window.localStorage.setItem('sensey_user', JSON.stringify({ username: formData.username, role: 'user', isLoggedIn: true }));
-        window.location.href = '/';
-      } else {
-        setError(result.message || 'Registration failed');
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          window.localStorage.setItem('sensey_user', JSON.stringify({
+            username: formData.username,
+            role: 'user',
+            isLoggedIn: true
+          }));
+          window.location.href = '/';
+        } else {
+          setError(data.message || 'Registration failed');
+        }
+      } catch (err) {
+        setError('Registration failed. Please try again.');
       }
     }
 
@@ -63,19 +82,10 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
-          <div className="flex gap-3 mb-6">
-            <Link href="/login/admin" className="flex-1 py-2 px-3 bg-slate-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-slate-700 transition-colors">
-              ⚙️ Admin
-            </Link>
-            <Link href="/login/vendor" className="flex-1 py-2 px-3 bg-emerald-600 text-white rounded-xl font-semibold text-sm text-center hover:bg-emerald-700 transition-colors">
-              🏪 Vendor
-            </Link>
-          </div>
-
           <div className="border-t border-slate-200 my-6"></div>
 
           <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
-            {isLogin ? 'Customer Login' : 'Customer Sign Up'}
+            {isLogin ? 'Admin Login' : 'Sign Up'}
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -132,22 +142,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
-              className="text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
-            </button>
-          </div>
+          <p className="text-center mt-6">
+            <Link href="/" className="text-gray-500 hover:text-gray-700">← Back to Store</Link>
+          </p>
         </div>
-
-        <p className="text-center mt-6">
-          <Link href="/" className="text-gray-500 hover:text-gray-700">← Back to Store</Link>
-        </p>
       </div>
     </div>
   );
