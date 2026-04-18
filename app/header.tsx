@@ -23,6 +23,7 @@ export default function Header() {
   const navItems = [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'Products' },
+    { href: '/submit-receipt', label: 'Receipt' },
     { href: '/admin', label: 'Admin' },
     { href: '/vendor', label: 'Sell' },
   ];
