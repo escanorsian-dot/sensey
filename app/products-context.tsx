@@ -52,8 +52,10 @@ export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const fetchProducts = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch('/api/products', {
         method: 'GET',
+        cache: 'no-store',
       });
 
       if (!response.ok) {

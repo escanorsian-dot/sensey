@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDB } from '@/lib/firebase';
-import { collection, getDocs, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 
 export async function GET() {
   try {
     const db = getDB();
     const productsRef = collection(db, 'products');
-    const q = query(productsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(productsRef);
     
     const products = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -15,7 +14,11 @@ export async function GET() {
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     }));
 
-    return NextResponse.json(products);
+    return NextResponse.json(products, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   } catch (error: any) {
     console.error('[ERROR] GET /api/products failed:', error);
     return NextResponse.json(
