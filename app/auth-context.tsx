@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [lastRead, setLastRead] = useState<number>(0);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     loadUserFromStorage();
     loadSupportMessages();
   }, []);

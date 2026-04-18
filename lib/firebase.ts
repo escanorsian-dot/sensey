@@ -14,6 +14,9 @@ let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
 
 export function getFirebaseApp(): FirebaseApp {
+  if (typeof window === 'undefined') {
+    return {} as FirebaseApp;
+  }
   if (!app) {
     app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
   }
@@ -21,6 +24,9 @@ export function getFirebaseApp(): FirebaseApp {
 }
 
 export function getDB(): Firestore {
+  if (typeof window === 'undefined') {
+    return {} as Firestore;
+  }
   if (!db) {
     db = getFirestore(getFirebaseApp());
   }
