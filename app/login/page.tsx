@@ -26,7 +26,7 @@ export default function LoginPage() {
 
     if (isLogin) {
       try {
-        const res = await fetch('/api/auth/admin-login', {
+        const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
@@ -36,10 +36,16 @@ export default function LoginPage() {
         if (data.success) {
           window.localStorage.setItem('sensey_user', JSON.stringify({
             username: formData.username,
-            role: 'admin',
+            role: data.role,
             isLoggedIn: true
           }));
-          window.location.href = '/admin';
+          if (data.role === 'admin') {
+            window.location.href = '/admin';
+          } else if (data.role === 'vendor') {
+            window.location.href = '/vendor';
+          } else {
+            window.location.href = '/';
+          }
         } else {
           setError(data.message || 'Invalid credentials');
         }
@@ -82,10 +88,19 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+          <div className="flex gap-3 mb-6">
+            <Link href="/login/admin" className="flex-1 py-2 px-3 bg-slate-800 text-white rounded-xl font-semibold text-sm text-center hover:bg-slate-700 transition-colors">
+              ⚙️ Admin
+            </Link>
+            <Link href="/login/vendor" className="flex-1 py-2 px-3 bg-emerald-600 text-white rounded-xl font-semibold text-sm text-center hover:bg-emerald-700 transition-colors">
+              🏪 Vendor
+            </Link>
+          </div>
+
           <div className="border-t border-slate-200 my-6"></div>
 
           <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
-            {isLogin ? 'Admin Login' : 'Sign Up'}
+            {isLogin ? 'Customer Login' : 'Customer Sign Up'}
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -142,10 +157,22 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center mt-6">
-            <Link href="/" className="text-gray-500 hover:text-gray-700">← Back to Store</Link>
-          </p>
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+              }}
+              className="text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
+            </button>
+          </div>
         </div>
+
+        <p className="text-center mt-6">
+          <Link href="/" className="text-gray-500 hover:text-gray-700">← Back to Store</Link>
+        </p>
       </div>
     </div>
   );
