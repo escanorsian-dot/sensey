@@ -139,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('sensey_user');
     setUser(null);
+    window.location.href = '/';
   };
 
   const register = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
